@@ -4,6 +4,12 @@ CAB_FAC.csv
 DAT_PER.csv
 HISTORICO_PYP.csv
 
+# Cache de SharePoint
+cache_sharepoint/
+
+# Configuración con credenciales (si se crea copia local)
+config_sharepoint_local.py
+
 # Archivos temporales de Excel
 ~$*.xlsx
 ~$*.xls

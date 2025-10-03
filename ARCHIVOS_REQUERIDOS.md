@@ -1,6 +1,21 @@
 # Archivos CSV Requeridos
 
-Este proyecto requiere los siguientes archivos CSV que **NO** están incluidos en el repositorio por su tamaño:
+Este proyecto requiere los siguientes archivos CSV que **NO** están incluidos en el repositorio por su tamaño.
+
+## 🔄 Opciones para Obtener los Archivos
+
+### Opción 1: SharePoint (Recomendado) ⭐
+
+Si tu organización usa SharePoint, puedes configurar la aplicación para leer los archivos directamente desde allí:
+
+- 📘 Ver: [GUIA_SHAREPOINT.md](GUIA_SHAREPOINT.md) para instrucciones completas
+- ✅ No necesitas descargar archivos localmente
+- ✅ Siempre usa la versión más reciente
+- ✅ Control de acceso corporativo
+
+### Opción 2: Archivos Locales
+
+Descarga los archivos y colócalos en el directorio del proyecto:
 
 ## 📋 Archivos Necesarios
 
