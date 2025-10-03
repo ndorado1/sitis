@@ -1,0 +1,29 @@
+# Archivos CSV grandes
+ACTXPROG.csv
+CAB_FAC.csv
+DAT_PER.csv
+HISTORICO_PYP.csv
+
+# Archivos temporales de Excel
+~$*.xlsx
+~$*.xls
+
+# Archivos del sistema
+.DS_Store
+*.pyc
+__pycache__/
+
+# Entornos virtuales
+venv/
+env/
+.venv/
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Cache de Streamlit
+.streamlit/
+
