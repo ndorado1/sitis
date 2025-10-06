@@ -13,6 +13,7 @@ import streamlit as st
 try:
     from office365.sharepoint.client_context import ClientContext
     from office365.runtime.auth.user_credential import UserCredential
+    from office365.runtime.auth.client_credential import ClientCredential
     SHAREPOINT_AVAILABLE = True
 except ImportError:
     SHAREPOINT_AVAILABLE = False
@@ -32,16 +33,35 @@ class SharePointLoader:
             self._authenticate()
     
     def _authenticate(self):
-        """Autenticar con SharePoint"""
+        """Autenticar con SharePoint usando Azure AD App"""
         try:
-            credentials = UserCredential(
-                config.SHAREPOINT_USERNAME,
-                config.SHAREPOINT_PASSWORD
-            )
-            self.ctx = ClientContext(config.SHAREPOINT_SITE_URL).with_credentials(credentials)
-            print("✅ Conectado a SharePoint")
+            # Autenticación con Azure AD usando Client Credentials
+            if config.SHAREPOINT_CLIENT_ID and config.SHAREPOINT_CLIENT_SECRET and config.SHAREPOINT_TENANT_ID:
+                print("🔐 Autenticando con Azure AD (App Registration)...")
+                credentials = ClientCredential(
+                    config.SHAREPOINT_CLIENT_ID,
+                    config.SHAREPOINT_CLIENT_SECRET
+                )
+                self.ctx = ClientContext(config.SHAREPOINT_SITE_URL).with_credentials(credentials)
+                print("✅ Conectado a SharePoint con Azure AD")
+            
+            # Fallback: usuario y contraseña (menos común en producción)
+            elif config.SHAREPOINT_USERNAME and config.SHAREPOINT_PASSWORD:
+                print("🔐 Autenticando con usuario y contraseña...")
+                credentials = UserCredential(
+                    config.SHAREPOINT_USERNAME,
+                    config.SHAREPOINT_PASSWORD
+                )
+                self.ctx = ClientContext(config.SHAREPOINT_SITE_URL).with_credentials(credentials)
+                print("✅ Conectado a SharePoint con credenciales de usuario")
+            
+            else:
+                print("⚠️ No hay credenciales configuradas. Usando archivos locales.")
+                self.use_sharepoint = False
+                
         except Exception as e:
             print(f"❌ Error al conectar con SharePoint: {e}")
+            print(f"    Detalles: {str(e)}")
             self.use_sharepoint = False
     
     def _download_file_from_sharepoint(self, file_name):

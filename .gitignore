@@ -9,6 +9,9 @@ cache_sharepoint/
 
 # Configuración con credenciales (si se crea copia local)
 config_sharepoint_local.py
+.env
+.env.local
+*.env
 
 # Archivos temporales de Excel
 ~$*.xlsx

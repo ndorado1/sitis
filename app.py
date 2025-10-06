@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 import re
+from sharepoint_loader import sharepoint_loader
 
 # Función para normalizar textos con caracteres especiales
 def normalizar_texto(texto):
@@ -67,7 +68,7 @@ st.set_page_config(
 @st.cache_data
 def cargar_actividades():
     """Carga el catálogo de actividades filtradas"""
-    df = pd.read_csv('ACTXPROG_filtrado.csv', encoding='utf-8')
+    df = sharepoint_loader.load_csv('ACTXPROG_FILTRADO', encoding='utf-8')
     # Normalizar descripciones
     df['DES_ACTXPROG'] = df['DES_ACTXPROG'].apply(normalizar_texto)
     return df
@@ -75,7 +76,7 @@ def cargar_actividades():
 @st.cache_data
 def cargar_datos_pacientes():
     """Carga los datos de pacientes"""
-    df = pd.read_csv('DAT_PER.csv', encoding='utf-8')
+    df = sharepoint_loader.load_csv('DAT_PER', encoding='utf-8')
     # Convertir IDE_PAC a string para búsqueda
     df['IDE_PAC'] = df['IDE_PAC'].astype(str)
     
@@ -98,14 +99,14 @@ def cargar_datos_pacientes():
 @st.cache_data
 def cargar_historico_pyp():
     """Carga el histórico de PyP"""
-    df = pd.read_csv('HISTORICO_PYP.csv', encoding='utf-8')
+    df = sharepoint_loader.load_csv('HISTORICO_PYP', encoding='utf-8')
     return df
 
 @st.cache_data
 def cargar_cab_fac():
     """Carga las facturas (cabecera)"""
     # Cargar solo las columnas necesarias para optimizar memoria
-    df = pd.read_csv('CAB_FAC.csv', usecols=['IDCAB_FAC', 'FAC_FEC'], encoding='utf-8')
+    df = sharepoint_loader.load_csv('CAB_FAC', encoding='utf-8', usecols=['IDCAB_FAC', 'FAC_FEC'])
     return df
 
 def buscar_paciente_por_documento(documento, df_pacientes):

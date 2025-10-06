@@ -8,17 +8,18 @@ Este archivo contiene la configuración para acceder a los archivos CSV desde Sh
 # ============= CONFIGURACIÓN DE SHAREPOINT =============
 
 # URL del sitio de SharePoint
-SHAREPOINT_SITE_URL = "https://tu-organizacion.sharepoint.com/sites/tu-sitio"
+SHAREPOINT_SITE_URL = "https://mamadominga.sharepoint.com/sites/IntranetHMD"
 
 # Ruta de la carpeta donde están los archivos CSV
-SHAREPOINT_FOLDER_PATH = "/Documentos Compartidos/SITIS/datos"
+SHAREPOINT_FOLDER_PATH = "/Documentos compartidos/Analisis de Datos/BD_SITIS"
 
 # Nombres de los archivos en SharePoint
 ARCHIVOS_CSV = {
     'DAT_PER': 'DAT_PER.csv',
     'HISTORICO_PYP': 'HISTORICO_PYP.csv',
     'CAB_FAC': 'CAB_FAC.csv',
-    'ACTXPROG': 'ACTXPROG.csv'
+    'ACTXPROG': 'ACTXPROG.csv',
+    'ACTXPROG_FILTRADO': 'ACTXPROG_filtrado.csv'
 }
 
 # ============= AUTENTICACIÓN =============
