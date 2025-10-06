@@ -12,6 +12,7 @@ config_sharepoint_local.py
 .env
 .env.local
 *.env
+CREDENCIALES_STREAMLIT.txt
 
 # Archivos temporales de Excel
 ~$*.xlsx
