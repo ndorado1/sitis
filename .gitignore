@@ -11,6 +11,10 @@ Suturas_*.py
 *.md
 !README.md
 
+# Archivos de texto de instrucciones
+*.txt
+!requirements.txt
+
 # Cache de SharePoint
 cache_sharepoint/
 
