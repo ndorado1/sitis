@@ -1,8 +1,5 @@
-# Archivos CSV grandes
-ACTXPROG.csv
-CAB_FAC.csv
-DAT_PER.csv
-HISTORICO_PYP.csv
+# Archivos CSV (ahora se cargan desde SharePoint)
+*.csv
 
 # Archivos de otros proyectos
 Suturas_*.py
