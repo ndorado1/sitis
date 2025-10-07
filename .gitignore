@@ -7,6 +7,10 @@ HISTORICO_PYP.csv
 # Archivos de otros proyectos
 Suturas_*.py
 
+# Archivos de documentación (excepto README.md)
+*.md
+!README.md
+
 # Cache de SharePoint
 cache_sharepoint/
 
