@@ -4,6 +4,9 @@ CAB_FAC.csv
 DAT_PER.csv
 HISTORICO_PYP.csv
 
+# Archivos de otros proyectos
+Suturas_*.py
+
 # Cache de SharePoint
 cache_sharepoint/
 

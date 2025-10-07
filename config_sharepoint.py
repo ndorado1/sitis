@@ -11,7 +11,8 @@ Este archivo contiene la configuración para acceder a los archivos CSV desde Sh
 SHAREPOINT_SITE_URL = "https://mamadominga.sharepoint.com/sites/IntranetHMD"
 
 # Ruta de la carpeta donde están los archivos CSV
-SHAREPOINT_FOLDER_PATH = "/Documentos compartidos/Analisis de Datos/BD_SITIS"
+# Nota: La carpeta está en la raíz del drive, no en "Documentos compartidos"
+SHAREPOINT_FOLDER_PATH = "/Analisis de Datos/BD_SITIS"
 
 # Nombres de los archivos en SharePoint
 ARCHIVOS_CSV = {
@@ -42,7 +43,7 @@ SHAREPOINT_TENANT_ID = os.getenv('SHAREPOINT_TENANT_ID', '')
 # ============= MODO DE OPERACIÓN =============
 
 # Si True, intenta leer desde SharePoint. Si False, lee archivos locales
-USE_SHAREPOINT = False  # Cambiar a True cuando esté configurado
+USE_SHAREPOINT = True  # Activado para usar SharePoint
 
 # Cache local de archivos (para mejorar rendimiento)
 CACHE_LOCAL = True
