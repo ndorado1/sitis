@@ -74,42 +74,113 @@ def cargar_actividades():
     df['DES_ACTXPROG'] = df['DES_ACTXPROG'].apply(normalizar_texto)
     return df
 
-# Funciones para cargar datos por sede
+# Funciones para cargar datos consolidados de todas las sedes
 @st.cache_data
-def cargar_datos_pacientes(sede_id):
-    """Carga los datos de pacientes de una sede específica"""
-    df = sharepoint_loader.load_csv('DAT_PER', sede_id=sede_id, encoding='utf-8')
-    # Convertir IDE_PAC a string para búsqueda
-    df['IDE_PAC'] = df['IDE_PAC'].astype(str)
+def cargar_datos_pacientes_consolidado():
+    """Carga y consolida datos de pacientes de TODAS las sedes"""
+    dfs = []
     
-    # Normalizar nombres
-    df['NM1_PAC'] = df['NM1_PAC'].apply(normalizar_texto)
-    df['NM2_PAC'] = df['NM2_PAC'].apply(normalizar_texto)
-    df['AP1_PAC'] = df['AP1_PAC'].apply(normalizar_texto)
-    df['AP2_PAC'] = df['AP2_PAC'].apply(normalizar_texto)
+    for sede_id, sede_info in config.SEDES.items():
+        try:
+            print(f"\n📥 Cargando pacientes de {sede_info['nombre']}...")
+            df = sharepoint_loader.load_csv('DAT_PER', sede_id=sede_id, encoding='utf-8')
+            
+            # Convertir IDE_PAC a string para búsqueda
+            df['IDE_PAC'] = df['IDE_PAC'].astype(str)
+            
+            # Normalizar nombres
+            df['NM1_PAC'] = df['NM1_PAC'].apply(normalizar_texto)
+            df['NM2_PAC'] = df['NM2_PAC'].apply(normalizar_texto)
+            df['AP1_PAC'] = df['AP1_PAC'].apply(normalizar_texto)
+            df['AP2_PAC'] = df['AP2_PAC'].apply(normalizar_texto)
+            
+            # Concatenar nombre completo
+            df['NOMBRE_COMPLETO'] = (
+                df['NM1_PAC'].fillna('').astype(str) + ' ' +
+                df['NM2_PAC'].fillna('').astype(str) + ' ' +
+                df['AP1_PAC'].fillna('').astype(str) + ' ' +
+                df['AP2_PAC'].fillna('').astype(str)
+            ).str.strip().str.replace(r'\s+', ' ', regex=True)
+            
+            # Agregar columna identificadora de sede
+            df['SEDE'] = sede_info['nombre']
+            df['SEDE_ID'] = sede_id
+            
+            dfs.append(df)
+            print(f"   ✅ {len(df):,} pacientes cargados")
+            
+        except Exception as e:
+            print(f"   ⚠️ Error cargando {sede_info['nombre']}: {e}")
+            continue
     
-    # Concatenar nombre completo
-    df['NOMBRE_COMPLETO'] = (
-        df['NM1_PAC'].fillna('').astype(str) + ' ' +
-        df['NM2_PAC'].fillna('').astype(str) + ' ' +
-        df['AP1_PAC'].fillna('').astype(str) + ' ' +
-        df['AP2_PAC'].fillna('').astype(str)
-    ).str.strip().str.replace(r'\s+', ' ', regex=True)
+    if not dfs:
+        raise Exception("No se pudo cargar datos de ninguna sede")
     
-    return df
+    # Consolidar todos los DataFrames
+    df_consolidado = pd.concat(dfs, ignore_index=True)
+    print(f"\n✅ Total consolidado: {len(df_consolidado):,} pacientes de {len(dfs)} sede(s)")
+    
+    return df_consolidado
 
 @st.cache_data
-def cargar_historico_pyp(sede_id):
-    """Carga el histórico de PyP de una sede específica"""
-    df = sharepoint_loader.load_csv('HISTORICO_PYP', sede_id=sede_id, encoding='utf-8')
-    return df
+def cargar_historico_pyp_consolidado():
+    """Carga y consolida histórico de PyP de TODAS las sedes"""
+    dfs = []
+    
+    for sede_id, sede_info in config.SEDES.items():
+        try:
+            print(f"\n📥 Cargando histórico de {sede_info['nombre']}...")
+            df = sharepoint_loader.load_csv('HISTORICO_PYP', sede_id=sede_id, encoding='utf-8')
+            
+            # Agregar columna identificadora de sede
+            df['SEDE'] = sede_info['nombre']
+            df['SEDE_ID'] = sede_id
+            
+            dfs.append(df)
+            print(f"   ✅ {len(df):,} registros cargados")
+            
+        except Exception as e:
+            print(f"   ⚠️ Error cargando {sede_info['nombre']}: {e}")
+            continue
+    
+    if not dfs:
+        raise Exception("No se pudo cargar datos de ninguna sede")
+    
+    # Consolidar todos los DataFrames
+    df_consolidado = pd.concat(dfs, ignore_index=True)
+    print(f"\n✅ Total consolidado: {len(df_consolidado):,} registros de {len(dfs)} sede(s)")
+    
+    return df_consolidado
 
 @st.cache_data
-def cargar_cab_fac(sede_id):
-    """Carga las facturas (cabecera) de una sede específica"""
-    # Cargar solo las columnas necesarias para optimizar memoria
-    df = sharepoint_loader.load_csv('CAB_FAC', sede_id=sede_id, encoding='utf-8', usecols=['IDCAB_FAC', 'FAC_FEC'])
-    return df
+def cargar_cab_fac_consolidado():
+    """Carga y consolida facturas (cabecera) de TODAS las sedes"""
+    dfs = []
+    
+    for sede_id, sede_info in config.SEDES.items():
+        try:
+            print(f"\n📥 Cargando facturas de {sede_info['nombre']}...")
+            df = sharepoint_loader.load_csv('CAB_FAC', sede_id=sede_id, encoding='utf-8', usecols=['IDCAB_FAC', 'FAC_FEC'])
+            
+            # Agregar columna identificadora de sede
+            df['SEDE'] = sede_info['nombre']
+            df['SEDE_ID'] = sede_id
+            
+            dfs.append(df)
+            print(f"   ✅ {len(df):,} facturas cargadas")
+            
+        except Exception as e:
+            print(f"   ⚠️ Error cargando {sede_info['nombre']}: {e}")
+            continue
+    
+    if not dfs:
+        raise Exception("No se pudo cargar datos de ninguna sede")
+    
+    # Consolidar todos los DataFrames
+    df_consolidado = pd.concat(dfs, ignore_index=True)
+    print(f"\n✅ Total consolidado: {len(df_consolidado):,} facturas de {len(dfs)} sede(s)")
+    
+    return df_consolidado
 
 def buscar_paciente_por_documento(documento, df_pacientes):
     """Busca un paciente por su documento de identidad"""
@@ -119,7 +190,7 @@ def buscar_paciente_por_documento(documento, df_pacientes):
     return None
 
 def buscar_atenciones_paciente(id_paciente, df_historico, df_cab_fac, df_actividades):
-    """Busca todas las atenciones de un paciente"""
+    """Busca todas las atenciones de un paciente en TODAS las sedes"""
     # Obtener lista de códigos de actividades válidas
     codigos_validos = df_actividades['ID_ACTXPROG'].tolist()
     
@@ -132,11 +203,12 @@ def buscar_atenciones_paciente(id_paciente, df_historico, df_cab_fac, df_activid
     if atenciones.empty:
         return pd.DataFrame()
     
-    # Obtener fechas de las facturas
+    # Obtener fechas de las facturas (matcheando también por SEDE_ID para evitar cruces)
     atenciones = atenciones.merge(
-        df_cab_fac[['IDCAB_FAC', 'FAC_FEC']], 
-        on='IDCAB_FAC', 
-        how='left'
+        df_cab_fac[['IDCAB_FAC', 'FAC_FEC', 'SEDE', 'SEDE_ID']], 
+        on=['IDCAB_FAC', 'SEDE_ID'], 
+        how='left',
+        suffixes=('', '_FAC')
     )
     
     # Agregar descripción de actividades
@@ -150,8 +222,9 @@ def buscar_atenciones_paciente(id_paciente, df_historico, df_cab_fac, df_activid
     # Usar FAC_FEC como fecha principal, si no existe usar FECHA del histórico
     atenciones['FECHA_ATENCION'] = atenciones['FAC_FEC'].fillna(atenciones['FECHA'])
     
-    # Seleccionar y ordenar columnas
+    # Seleccionar y ordenar columnas (incluyendo SEDE)
     columnas_mostrar = [
+        'SEDE',
         'ID_ACTPYP', 
         'DES_ACTXPROG', 
         'FECHA_ATENCION', 
@@ -166,7 +239,7 @@ def buscar_atenciones_paciente(id_paciente, df_historico, df_cab_fac, df_activid
     return atenciones_final
 
 def buscar_pacientes_por_actividad(id_actividad, df_historico, df_pacientes, df_cab_fac, df_actividades):
-    """Busca todos los pacientes que han recibido una actividad específica"""
+    """Busca todos los pacientes que han recibido una actividad específica en TODAS las sedes"""
     # Verificar que la actividad esté en el catálogo válido
     if id_actividad not in df_actividades['ID_ACTXPROG'].values:
         return pd.DataFrame()
@@ -177,25 +250,27 @@ def buscar_pacientes_por_actividad(id_actividad, df_historico, df_pacientes, df_
     if atenciones.empty:
         return pd.DataFrame()
     
-    # Obtener fechas de las facturas
+    # Obtener fechas de las facturas (matcheando también por SEDE_ID)
     atenciones = atenciones.merge(
-        df_cab_fac[['IDCAB_FAC', 'FAC_FEC']], 
-        on='IDCAB_FAC', 
-        how='left'
+        df_cab_fac[['IDCAB_FAC', 'FAC_FEC', 'SEDE', 'SEDE_ID']], 
+        on=['IDCAB_FAC', 'SEDE_ID'], 
+        how='left',
+        suffixes=('', '_FAC')
     )
     
-    # Agregar datos del paciente
+    # Agregar datos del paciente (matcheando por ID_PACIENTE y SEDE_ID)
     atenciones = atenciones.merge(
-        df_pacientes[['ID_PACIENTE', 'IDE_PAC', 'COD_TID', 'NOMBRE_COMPLETO', 'SEX_PAC']], 
-        on='ID_PACIENTE', 
+        df_pacientes[['ID_PACIENTE', 'IDE_PAC', 'COD_TID', 'NOMBRE_COMPLETO', 'SEX_PAC', 'SEDE_ID']], 
+        on=['ID_PACIENTE', 'SEDE_ID'], 
         how='left'
     )
     
     # Usar FAC_FEC como fecha principal
     atenciones['FECHA_ATENCION'] = atenciones['FAC_FEC'].fillna(atenciones['FECHA'])
     
-    # Seleccionar columnas
+    # Seleccionar columnas (incluyendo SEDE)
     columnas_mostrar = [
+        'SEDE',
         'IDE_PAC',
         'COD_TID',
         'NOMBRE_COMPLETO',
@@ -214,48 +289,39 @@ def buscar_pacientes_por_actividad(id_actividad, df_historico, df_pacientes, df_
 # ============= INTERFAZ PRINCIPAL =============
 
 st.title("🏥 Sistema de Consulta de Atenciones SITIS")
+st.caption("📊 Vista consolidada de todas las sedes")
 st.markdown("---")
 
-# ============= SELECTOR DE SEDE =============
-st.subheader("📍 Seleccione la Sede")
-
-# Crear opciones para el selectbox
-opciones_sedes = {
-    sede_id: info['nombre'] 
-    for sede_id, info in config.SEDES.items()
-}
-
-col1, col2 = st.columns([2, 3])
-
-with col1:
-    sede_seleccionada = st.selectbox(
-        "Sede:",
-        options=list(opciones_sedes.keys()),
-        format_func=lambda x: opciones_sedes[x],
-        key='selector_sede'
-    )
-
-with col2:
-    if sede_seleccionada in config.SEDES:
-        st.info(f"ℹ️ {config.SEDES[sede_seleccionada]['descripcion']}")
-
-st.markdown("---")
-
-# Cargar datos de la sede seleccionada
-with st.spinner(f'Cargando datos de {opciones_sedes[sede_seleccionada]}...'):
+# Cargar datos consolidados de TODAS las sedes
+with st.spinner('Cargando datos de todas las sedes...'):
     try:
-        # Catálogo compartido (una sola vez)
+        # Catálogo compartido
         df_actividades = cargar_actividades()
         
-        # Datos específicos de la sede
-        df_pacientes = cargar_datos_pacientes(sede_seleccionada)
-        df_historico = cargar_historico_pyp(sede_seleccionada)
-        df_cab_fac = cargar_cab_fac(sede_seleccionada)
+        # Datos consolidados de todas las sedes
+        df_pacientes = cargar_datos_pacientes_consolidado()
+        df_historico = cargar_historico_pyp_consolidado()
+        df_cab_fac = cargar_cab_fac_consolidado()
         
-        st.success(f"✅ Datos de {opciones_sedes[sede_seleccionada]} cargados correctamente")
+        # Mostrar información de sedes cargadas
+        sedes_cargadas = df_pacientes['SEDE'].unique()
+        st.success(f"✅ Datos consolidados de {len(sedes_cargadas)} sede(s): {', '.join(sedes_cargadas)}")
+        
+        # Mostrar estadísticas rápidas
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Pacientes", f"{len(df_pacientes):,}")
+        with col2:
+            st.metric("Total Atenciones", f"{len(df_historico):,}")
+        with col3:
+            st.metric("Total Facturas", f"{len(df_cab_fac):,}")
+        
     except Exception as e:
         st.error(f"❌ Error al cargar datos: {str(e)}")
+        st.info("💡 Tip: Verifica que las sedes estén configuradas correctamente en config_sharepoint.py")
         st.stop()
+
+st.markdown("---")
 
 # Tabs para diferentes tipos de búsqueda
 tab1, tab2 = st.tabs(["🔍 Buscar por Paciente", "📊 Buscar por Actividad"])
@@ -301,12 +367,14 @@ with tab1:
                 # Mostrar información del paciente
                 st.success("✅ Paciente encontrado")
                 
-                col1, col2, col3 = st.columns(3)
+                col1, col2, col3, col4 = st.columns(4)
                 with col1:
-                    st.metric("Tipo Documento", paciente['COD_TID'])
+                    st.metric("Sede", paciente['SEDE'])
                 with col2:
-                    st.metric("Documento", paciente['IDE_PAC'])
+                    st.metric("Tipo Documento", paciente['COD_TID'])
                 with col3:
+                    st.metric("Documento", paciente['IDE_PAC'])
+                with col4:
                     st.metric("Sexo", paciente['SEX_PAC'])
                 
                 st.subheader(f"📋 Paciente: {paciente['NOMBRE_COMPLETO']}")
@@ -355,6 +423,7 @@ with tab1:
                         # Renombrar columnas para mejor presentación
                         if not atenciones_filtradas.empty:
                             atenciones_display = atenciones_filtradas.rename(columns={
+                                'SEDE': 'Sede',
                                 'ID_ACTPYP': 'Código Actividad',
                                 'DES_ACTXPROG': 'Descripción Actividad',
                                 'FECHA_ATENCION': 'Fecha Atención',
@@ -371,12 +440,23 @@ with tab1:
                             st.warning("⚠️ No se encontraron registros para esta actividad")
                         
                         # Estadísticas
-                        col1, col2 = st.columns(2)
+                        col1, col2, col3 = st.columns(3)
                         with col1:
                             st.metric("Total de Atenciones", len(atenciones_filtradas))
                         with col2:
                             actividades_unicas = atenciones_filtradas['ID_ACTPYP'].nunique()
                             st.metric("Actividades Diferentes", actividades_unicas)
+                        with col3:
+                            sedes_atendido = atenciones_filtradas['SEDE'].nunique()
+                            st.metric("Sedes de Atención", sedes_atendido)
+                        
+                        # Desglose por sede si hay atenciones en múltiples sedes
+                        if sedes_atendido > 1:
+                            st.markdown("#### 📊 Atenciones por Sede")
+                            sede_stats = atenciones_filtradas.groupby('SEDE').agg({
+                                'ID_ACTPYP': 'count'
+                            }).rename(columns={'ID_ACTPYP': 'Total Atenciones'}).reset_index()
+                            st.dataframe(sede_stats, use_container_width=True, hide_index=True)
                         
                         # Botón de descarga
                         csv = atenciones_display.to_csv(index=False).encode('utf-8')
@@ -427,6 +507,7 @@ with tab2:
                 
                 # Renombrar columnas
                 pacientes_display = pacientes_actividad.rename(columns={
+                    'SEDE': 'Sede',
                     'IDE_PAC': 'Documento',
                     'COD_TID': 'Tipo Doc',
                     'NOMBRE_COMPLETO': 'Nombre Paciente',
@@ -443,12 +524,23 @@ with tab2:
                 )
                 
                 # Estadísticas
-                col1, col2 = st.columns(2)
+                col1, col2, col3 = st.columns(3)
                 with col1:
                     st.metric("Total de Registros", len(pacientes_actividad))
                 with col2:
                     pacientes_unicos = pacientes_actividad['IDE_PAC'].nunique()
                     st.metric("Pacientes Únicos", pacientes_unicos)
+                with col3:
+                    sedes_con_actividad = pacientes_actividad['SEDE'].nunique()
+                    st.metric("Sedes", sedes_con_actividad)
+                
+                # Desglose por sede
+                if sedes_con_actividad > 1:
+                    st.markdown("#### 📊 Desglose por Sede")
+                    sede_stats = pacientes_actividad.groupby('SEDE').agg({
+                        'IDE_PAC': 'count'
+                    }).rename(columns={'IDE_PAC': 'Total Registros'}).reset_index()
+                    st.dataframe(sede_stats, use_container_width=True, hide_index=True)
                 
                 # Botón de descarga
                 csv = pacientes_display.to_csv(index=False).encode('utf-8')

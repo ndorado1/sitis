@@ -4,14 +4,15 @@ Aplicación web desarrollada con Streamlit para consultar el historial de atenci
 
 ## ✨ Características Principales
 
-- **🏢 Multi-Sede**: Soporta múltiples sedes con catálogo de actividades compartido
-- **🔍 Búsqueda por Paciente**: Consulta el historial completo de atenciones usando el número de documento
-- **📋 Búsqueda por Actividad**: Encuentra todos los pacientes que han recibido una actividad específica
+- **🏢 Vista Consolidada Multi-Sede**: Carga y consolida automáticamente datos de todas las sedes configuradas
+- **🔍 Búsqueda por Paciente**: Consulta el historial completo de atenciones en todas las sedes usando el número de documento
+- **📋 Búsqueda por Actividad**: Encuentra todos los pacientes que han recibido una actividad específica en cualquier sede
+- **📊 Estadísticas por Sede**: Visualiza métricas desagregadas por sede en tiempo real
 - **🔄 Filtros Dinámicos**: Filtra las actividades encontradas para un paciente específico
-- **📊 Exportación de Datos**: Descarga los resultados en formato CSV
+- **📥 Exportación de Datos**: Descarga los resultados consolidados en formato CSV
 - **☁️ Integración con SharePoint**: Lee archivos directamente desde SharePoint Online
 - **💾 Cache Inteligente**: Sistema de caché local por sede para mejor rendimiento
-- **🎨 Interfaz Moderna**: Diseño intuitivo y fácil de usar
+- **🎨 Interfaz Moderna**: Diseño intuitivo con métricas en tiempo real
 
 ## 🚀 Instalación
 
@@ -114,38 +115,41 @@ La aplicación funciona en modo cascada:
 
 ## 🔍 Uso de la Aplicación
 
-### 1. Selección de Sede
+### Vista Consolidada Automática
 
-Al iniciar la aplicación, primero selecciona la sede desde el menú desplegable:
-- **Sede Principal**: Hospital Madre Dominga - Sede Principal
-- *(Agregar más sedes según configuración)*
+Al iniciar la aplicación, los datos de **todas las sedes configuradas** se cargan automáticamente:
+- ✅ No necesitas seleccionar una sede específica
+- ✅ Todas las búsquedas incluyen información de todas las sedes
+- ✅ Las métricas muestran totales consolidados y desgloses por sede
+- ✅ La columna "Sede" identifica el origen de cada registro
 
-Los datos se cargarán automáticamente al seleccionar la sede.
-
-### 2. Búsqueda por Paciente
+### 1. Búsqueda por Paciente
 
 1. Ingresa el número de documento (IDE_PAC)
 2. Haz clic en **"Buscar"**
 3. Visualiza:
-   - Datos personales del paciente
-   - Historial completo de atenciones de la sede seleccionada
+   - Datos personales del paciente (incluyendo su sede)
+   - Historial completo de atenciones **en todas las sedes**
    - Fechas de cada atención
    - Código y descripción de actividades
+   - Sede donde se realizó cada atención
 4. Usa el filtro de actividades para buscar una atención específica
-5. Descarga los resultados en CSV si es necesario
+5. Si el paciente tiene atenciones en múltiples sedes, se muestra un desglose
+6. Descarga los resultados consolidados en CSV
 
-### 3. Búsqueda por Actividad
+### 2. Búsqueda por Actividad
 
 1. Selecciona una actividad del menú desplegable (catálogo compartido)
 2. Haz clic en **"Buscar Pacientes"**
 3. Visualiza:
-   - Lista de todos los pacientes de la sede seleccionada
+   - Lista de todos los pacientes **de todas las sedes**
    - Datos demográficos
    - Fechas de atención
-   - Estadísticas agregadas
-4. Descarga los resultados en CSV si es necesario
+   - Sede de cada atención
+   - Estadísticas consolidadas y desglose por sede
+4. Descarga los resultados consolidados en CSV
 
-> **💡 Tip**: Para buscar en otra sede, simplemente cambia la selección en el menú desplegable superior. Los datos se recargarán automáticamente.
+> **💡 Ventaja**: Puedes buscar un paciente sin saber en qué sede fue atendido. El sistema busca automáticamente en todas las sedes configuradas.
 
 ## 📈 Información Mostrada
 
@@ -207,7 +211,7 @@ SEDES = {
 
 ### 3. ¡Listo!
 
-La aplicación detectará automáticamente la nueva sede y la mostrará en el selector. No se requieren cambios adicionales.
+La aplicación detectará automáticamente la nueva sede y cargará sus datos al iniciar. No se requieren cambios adicionales en el código.
 
 ## 🔐 Seguridad
 

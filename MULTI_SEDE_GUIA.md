@@ -16,7 +16,7 @@ Esta guía explica cómo funciona el sistema multi-sede y cómo configurar nueva
 
 ### Concepto Principal
 
-El sistema maneja múltiples sedes con un **catálogo de actividades compartido**:
+El sistema maneja múltiples sedes con un **catálogo de actividades compartido** y **vista consolidada automática**:
 
 ```
 📊 Datos Compartidos (Todas las Sedes)
@@ -26,15 +26,20 @@ El sistema maneja múltiples sedes con un **catálogo de actividades compartido*
    ├── DAT_PER.csv            ← Pacientes de la sede
    ├── HISTORICO_PYP.csv      ← Atenciones de la sede  
    └── CAB_FAC.csv            ← Facturas de la sede
+
+🔄 Vista Consolidada
+   └── La aplicación carga automáticamente TODAS las sedes
+       y las consolida en un solo DataFrame con columna SEDE
 ```
 
 ### Ventajas
 
+✅ **Vista Unificada**: No necesitas seleccionar sede, ves todo consolidado
+✅ **Búsqueda Global**: Busca pacientes sin saber en qué sede fueron atendidos
 ✅ **Mantenimiento Simplificado**: Un solo catálogo para todas las sedes
 ✅ **Escalabilidad**: Agregar/quitar sedes sin cambiar código
-✅ **Aislamiento de Datos**: Cada sede tiene sus propios datos de pacientes
+✅ **Estadísticas por Sede**: Desgloses automáticos cuando hay datos de múltiples sedes
 ✅ **Cache Inteligente**: Datos cacheados por sede para mejor rendimiento
-✅ **Búsquedas Independientes**: Las búsquedas son específicas por sede
 
 ---
 
@@ -248,13 +253,19 @@ SEDES = {
 #### 3. Resultado en la UI
 
 ```
-┌─────────────────────────────────────┐
-│ 📍 Seleccione la Sede               │
-│ ┌─────────────────────────────────┐ │
-│ │ Sede Centro                   ▼ │ │ ← Aparece automáticamente
-│ └─────────────────────────────────┘ │
-│ ℹ️ Hospital Madre Dominga - Centro  │
-└─────────────────────────────────────┘
+┌──────────────────────────────────────────┐
+│ 🏥 Sistema de Consulta de Atenciones    │
+│ 📊 Vista consolidada de todas las sedes │
+├──────────────────────────────────────────┤
+│ ✅ Datos consolidados de 3 sede(s):     │
+│    Sede Principal, Sede Norte, Sede Sur │
+├──────────────────────────────────────────┤
+│ Total Pacientes: 150,000                 │
+│ Total Atenciones: 500,000                │
+│ Total Facturas: 450,000                  │
+└──────────────────────────────────────────┘
+
+← Los datos de todas las sedes se cargan automáticamente
 ```
 
 ---
