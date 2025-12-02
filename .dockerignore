@@ -1,0 +1,74 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Datos locales grandes (se cargan desde SharePoint)
+*.csv
+!ACTXPROG_filtrado.csv
+
+# Carpetas de trabajo
+Piendamo/
+Piendamo_Vieja/
+Piendamo_Final/
+Silvia/
+Silvia_Vieja/
+Silvia_Nueva/
+
+# Cache
+cache_sharepoint/
+.streamlit/
+
+# Scripts de consolidación
+consolidar_sedes.py
+consolidar_sedes_corregido.py
+verificar_duplicados.py
+limpiar_cache.sh
+
+# Documentación (excepto README si quieres incluirlo)
+*.md
+!README.md
+
+# Archivos de texto
+*.txt
+!requirements.txt
+
+# Archivos temporales
+*.tmp
+*.log
+~$*
+
+# Credenciales
+.env
+.env.local
+*.env
+CREDENCIALES_*.txt
+
+# Archivos de otros proyectos
+Suturas_*.py
+
+# DevContainer
+.devcontainer/
+

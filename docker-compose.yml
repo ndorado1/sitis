@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  sitis-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sitis-streamlit
+    restart: unless-stopped
+    
+    # Variables de entorno - IMPORTANTE: Configurar antes de desplegar
+    environment:
+      - SHAREPOINT_CLIENT_ID=${SHAREPOINT_CLIENT_ID}
+      - SHAREPOINT_CLIENT_SECRET=${SHAREPOINT_CLIENT_SECRET}
+      - SHAREPOINT_TENANT_ID=${SHAREPOINT_TENANT_ID}
+    
+    # Puerto - Mapear al host
+    ports:
+      - "8501:8501"
+    
+    # Volúmenes para persistir cache
+    volumes:
+      - ./cache_sharepoint:/app/cache_sharepoint
+      - streamlit-cache:/app/.streamlit
+    
+    # Límites de recursos (ajustar según tu VPS)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 3G
+        reservations:
+          memory: 1G
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # Logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  streamlit-cache:
+    driver: local
+
