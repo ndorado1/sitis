@@ -83,7 +83,7 @@ def cargar_datos_pacientes_consolidado():
     for sede_id, sede_info in config.SEDES.items():
         try:
             print(f"\n📥 Cargando pacientes de {sede_info['nombre']}...")
-            df = sharepoint_loader.load_csv('DAT_PER', sede_id=sede_id, encoding='utf-8')
+            df = sharepoint_loader.load_csv('DAT_PER', encoding='utf-8', sede_id=sede_id)
             
             # Convertir IDE_PAC a string para búsqueda
             df['IDE_PAC'] = df['IDE_PAC'].astype(str)
@@ -130,7 +130,7 @@ def cargar_historico_pyp_consolidado():
     for sede_id, sede_info in config.SEDES.items():
         try:
             print(f"\n📥 Cargando histórico de {sede_info['nombre']}...")
-            df = sharepoint_loader.load_csv('HISTORICO_PYP', sede_id=sede_id, encoding='utf-8')
+            df = sharepoint_loader.load_csv('HISTORICO_PYP', encoding='utf-8', sede_id=sede_id)
             
             # Agregar columna identificadora de sede
             df['SEDE'] = sede_info['nombre']
@@ -160,7 +160,7 @@ def cargar_cab_fac_consolidado():
     for sede_id, sede_info in config.SEDES.items():
         try:
             print(f"\n📥 Cargando facturas de {sede_info['nombre']}...")
-            df = sharepoint_loader.load_csv('CAB_FAC', sede_id=sede_id, encoding='utf-8', usecols=['IDCAB_FAC', 'FAC_FEC'])
+            df = sharepoint_loader.load_csv('CAB_FAC', encoding='utf-8', sede_id=sede_id, usecols=['IDCAB_FAC', 'FAC_FEC'])
             
             # Agregar columna identificadora de sede
             df['SEDE'] = sede_info['nombre']
