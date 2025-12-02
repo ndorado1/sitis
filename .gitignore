@@ -1,6 +1,17 @@
 # Archivos CSV (ahora se cargan desde SharePoint)
 *.csv
 
+# Carpetas de trabajo para consolidación de sedes
+Piendamo/
+Piendamo_Vieja/
+Piendamo_Final/
+Silvia/
+Silvia_Vieja/
+Silvia_Nueva/
+
+# Scripts de consolidación temporal
+consolidar_sedes.py
+
 # Archivos de otros proyectos
 Suturas_*.py
 
@@ -8,6 +19,7 @@ Suturas_*.py
 *.md
 !README.md
 !MULTI_SEDE_GUIA.md
+!CONSOLIDACION_SEDES.md
 
 # Archivos de texto de instrucciones
 *.txt

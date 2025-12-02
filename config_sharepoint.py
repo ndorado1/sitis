@@ -21,20 +21,19 @@ SHAREPOINT_BASE_PATH = "/Analisis de Datos"
 SEDES = {
     'PRINCIPAL': {
         'nombre': 'Sede Principal',
-        'carpeta': 'BD_SITIS',  # Carpeta actual
+        'carpeta': 'BD_SITIS',
         'descripcion': 'Hospital Madre Dominga - Sede Principal'
     },
-    # Agregar más sedes aquí:
-    # 'SEDE_NORTE': {
-    #     'nombre': 'Sede Norte',
-    #     'carpeta': 'BD_SITIS_NORTE',
-    #     'descripcion': 'Hospital Madre Dominga - Sede Norte'
-    # },
-    # 'SEDE_SUR': {
-    #     'nombre': 'Sede Sur',
-    #     'carpeta': 'BD_SITIS_SUR',
-    #     'descripcion': 'Hospital Madre Dominga - Sede Sur'
-    # },
+    'PIENDAMO': {
+        'nombre': 'Sede Piéndamo',
+        'carpeta': 'BD_SITIS_PIENDAMO',
+        'descripcion': 'Hospital Madre Dominga - Piéndamo (Consolidado Vieja + Final)'
+    },
+    'SILVIA': {
+        'nombre': 'Sede Silvia',
+        'carpeta': 'BD_SITIS_SILVIA',
+        'descripcion': 'Hospital Madre Dominga - Silvia (Consolidado Vieja + Nueva)'
+    },
 }
 
 # Carpeta donde está el catálogo de actividades compartido
