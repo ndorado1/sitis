@@ -118,7 +118,7 @@ class SharePointLoader:
             response.raise_for_status()
             
             items = response.json().get('value', [])
-            print(f"\n📂 Carpetas/archivos en la raíz del drive:")
+            print("\n📂 Carpetas/archivos en la raíz del drive:")
             for item in items:
                 item_type = "📁" if item.get('folder') else "📄"
                 print(f"   {item_type} {item['name']}")
@@ -127,14 +127,31 @@ class SharePointLoader:
         except Exception as e:
             print(f"⚠️ No se pudo listar carpetas: {e}")
     
-    def _download_file_from_sharepoint(self, file_name):
-        """Descargar un archivo desde SharePoint usando Microsoft Graph API con streaming"""
+    def _download_file_from_sharepoint(self, file_name, sede_id=None):
+        """Descargar un archivo desde SharePoint usando Microsoft Graph API con streaming
+        
+        Args:
+            file_name: Nombre del archivo a descargar
+            sede_id: ID de la sede (None para archivos compartidos como catálogo)
+        """
         if not self.use_sharepoint or not self.access_token or not self.site_id or not self.drive_id:
             return None
         
         try:
-            # Construir la ruta del archivo
-            folder_path = config.SHAREPOINT_FOLDER_PATH.strip('/')
+            # Determinar la ruta según si es archivo compartido o por sede
+            if file_name in config.ARCHIVOS_CSV_COMPARTIDOS.values():
+                # Archivos compartidos (catálogo): usar ruta del catálogo
+                folder_path = config.SHAREPOINT_CATALOGO_PATH.strip('/')
+            elif sede_id and sede_id in config.SEDES:
+                # Archivos por sede: usar carpeta de la sede
+                sede_carpeta = config.SEDES[sede_id]['carpeta']
+                folder_path = f"{config.SHAREPOINT_BASE_PATH}/{sede_carpeta}".strip('/')
+            else:
+                # Fallback: usar primera sede disponible
+                primera_sede = list(config.SEDES.keys())[0]
+                sede_carpeta = config.SEDES[primera_sede]['carpeta']
+                folder_path = f"{config.SHAREPOINT_BASE_PATH}/{sede_carpeta}".strip('/')
+            
             file_path = f"{folder_path}/{file_name}"
             
             print(f"📡 Streaming: {file_path}")
@@ -174,30 +191,52 @@ class SharePointLoader:
             print(f"❌ Error al leer {file_name}: {e}")
             return None
     
-    def _save_to_cache(self, file_name, content):
-        """Guardar archivo en cache local"""
+    def _save_to_cache(self, file_name, content, sede_id=None):
+        """Guardar archivo en cache local
+        
+        Args:
+            file_name: Nombre del archivo
+            content: Contenido del archivo (BytesIO)
+            sede_id: ID de la sede (None para archivos compartidos)
+        """
         if config.CACHE_LOCAL:
             cache_dir = config.CACHE_DIRECTORY
+            
+            # Crear subdirectorio por sede si es necesario
+            if sede_id and file_name not in config.ARCHIVOS_CSV_COMPARTIDOS.values():
+                cache_dir = os.path.join(cache_dir, sede_id)
+            
             os.makedirs(cache_dir, exist_ok=True)
             
             cache_path = os.path.join(cache_dir, file_name)
             with open(cache_path, 'wb') as f:
                 f.write(content.getvalue())
     
-    def _load_from_cache(self, file_name):
-        """Cargar archivo desde cache local"""
+    def _load_from_cache(self, file_name, sede_id=None):
+        """Cargar archivo desde cache local
+        
+        Args:
+            file_name: Nombre del archivo
+            sede_id: ID de la sede (None para archivos compartidos)
+        """
         if config.CACHE_LOCAL:
-            cache_path = os.path.join(config.CACHE_DIRECTORY, file_name)
+            # Buscar en subdirectorio de sede si aplica
+            if sede_id and file_name not in config.ARCHIVOS_CSV_COMPARTIDOS.values():
+                cache_path = os.path.join(config.CACHE_DIRECTORY, sede_id, file_name)
+            else:
+                cache_path = os.path.join(config.CACHE_DIRECTORY, file_name)
+            
             if os.path.exists(cache_path):
                 return cache_path
         return None
     
-    def load_csv(self, csv_key, encoding='utf-8', **kwargs):
+    def load_csv(self, csv_key, sede_id=None, encoding='utf-8', **kwargs):
         """
         Cargar un archivo CSV desde SharePoint o local
         
         Args:
             csv_key: Clave del archivo en config.ARCHIVOS_CSV
+            sede_id: ID de la sede (None para archivos compartidos como catálogo)
             encoding: Encoding del archivo
             **kwargs: Argumentos adicionales para pd.read_csv
         
@@ -209,23 +248,27 @@ class SharePointLoader:
         if not file_name:
             raise ValueError(f"Archivo no configurado: {csv_key}")
         
+        # Determinar si es archivo compartido
+        es_compartido = file_name in config.ARCHIVOS_CSV_COMPARTIDOS.values()
+        sede_label = "compartido" if es_compartido else f"sede {sede_id}"
+        
         # Intentar cargar desde SharePoint
         if self.use_sharepoint:
-            print(f"📥 Descargando {file_name} desde SharePoint...")
+            print(f"📥 Descargando {file_name} desde SharePoint ({sede_label})...")
             
-            file_content = self._download_file_from_sharepoint(file_name)
+            file_content = self._download_file_from_sharepoint(file_name, sede_id)
             
             if file_content:
                 # Guardar en cache
-                self._save_to_cache(file_name, file_content)
+                self._save_to_cache(file_name, file_content, sede_id)
                 
                 # Leer CSV
                 return pd.read_csv(file_content, encoding=encoding, **kwargs)
         
         # Fallback: intentar cargar desde cache
-        cache_path = self._load_from_cache(file_name)
+        cache_path = self._load_from_cache(file_name, sede_id)
         if cache_path:
-            print(f"📂 Cargando {file_name} desde cache...")
+            print(f"📂 Cargando {file_name} desde cache ({sede_label})...")
             return pd.read_csv(cache_path, encoding=encoding, **kwargs)
         
         # Fallback final: archivo local
@@ -238,9 +281,15 @@ sharepoint_loader = SharePointLoader()
 
 
 # Funciones helper para usar en app.py
-def cargar_csv_sharepoint(csv_key, encoding='utf-8', **kwargs):
+def cargar_csv_sharepoint(csv_key, sede_id=None, encoding='utf-8', **kwargs):
     """
     Función helper para cargar CSV compatible con el código actual
+    
+    Args:
+        csv_key: Clave del archivo en config.ARCHIVOS_CSV
+        sede_id: ID de la sede (None para archivos compartidos)
+        encoding: Encoding del archivo
+        **kwargs: Argumentos adicionales para pd.read_csv
     """
-    return sharepoint_loader.load_csv(csv_key, encoding=encoding, **kwargs)
+    return sharepoint_loader.load_csv(csv_key, sede_id=sede_id, encoding=encoding, **kwargs)
 

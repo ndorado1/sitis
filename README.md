@@ -4,12 +4,13 @@ Aplicación web desarrollada con Streamlit para consultar el historial de atenci
 
 ## ✨ Características Principales
 
+- **🏢 Multi-Sede**: Soporta múltiples sedes con catálogo de actividades compartido
 - **🔍 Búsqueda por Paciente**: Consulta el historial completo de atenciones usando el número de documento
 - **📋 Búsqueda por Actividad**: Encuentra todos los pacientes que han recibido una actividad específica
 - **🔄 Filtros Dinámicos**: Filtra las actividades encontradas para un paciente específico
 - **📊 Exportación de Datos**: Descarga los resultados en formato CSV
 - **☁️ Integración con SharePoint**: Lee archivos directamente desde SharePoint Online
-- **💾 Cache Inteligente**: Sistema de caché local para mejor rendimiento
+- **💾 Cache Inteligente**: Sistema de caché local por sede para mejor rendimiento
 - **🎨 Interfaz Moderna**: Diseño intuitivo y fácil de usar
 
 ## 🚀 Instalación
@@ -86,14 +87,23 @@ La aplicación se abrirá en `http://localhost:8501`
 
 ## 📊 Fuentes de Datos
 
-La aplicación lee los siguientes archivos desde SharePoint o localmente:
+### 🏢 Arquitectura Multi-Sede
 
-| Archivo | Descripción | Tamaño |
-|---------|-------------|--------|
-| `ACTXPROG_filtrado.csv` | Catálogo de actividades filtradas | ~40 KB |
-| `DAT_PER.csv` | Datos demográficos de pacientes | ~13 MB |
-| `HISTORICO_PYP.csv` | Histórico de atenciones | ~40 MB |
-| `CAB_FAC.csv` | Cabecera de facturas con fechas | ~560 MB |
+La aplicación soporta múltiples sedes con una arquitectura escalable:
+
+- **Catálogo Compartido**: `ACTXPROG_filtrado.csv` es único para todas las sedes
+- **Datos por Sede**: Cada sede tiene sus propios archivos de pacientes, historicos y facturas
+- **Cache Independiente**: Los datos de cada sede se cachean por separado
+- **Configuración Flexible**: Agregar nuevas sedes es tan simple como editar `config_sharepoint.py`
+
+### 📁 Archivos por Tipo
+
+| Archivo | Tipo | Descripción | Tamaño Aprox |
+|---------|------|-------------|--------------|
+| `ACTXPROG_filtrado.csv` | **Compartido** | Catálogo de actividades | ~40 KB |
+| `DAT_PER.csv` | **Por Sede** | Datos demográficos | ~13 MB |
+| `HISTORICO_PYP.csv` | **Por Sede** | Histórico de atenciones | ~40 MB |
+| `CAB_FAC.csv` | **Por Sede** | Cabecera de facturas | ~560 MB |
 
 ### 🔄 Sistema de Fallback
 
@@ -104,28 +114,38 @@ La aplicación funciona en modo cascada:
 
 ## 🔍 Uso de la Aplicación
 
-### Búsqueda por Paciente
+### 1. Selección de Sede
+
+Al iniciar la aplicación, primero selecciona la sede desde el menú desplegable:
+- **Sede Principal**: Hospital Madre Dominga - Sede Principal
+- *(Agregar más sedes según configuración)*
+
+Los datos se cargarán automáticamente al seleccionar la sede.
+
+### 2. Búsqueda por Paciente
 
 1. Ingresa el número de documento (IDE_PAC)
 2. Haz clic en **"Buscar"**
 3. Visualiza:
    - Datos personales del paciente
-   - Historial completo de atenciones
+   - Historial completo de atenciones de la sede seleccionada
    - Fechas de cada atención
    - Código y descripción de actividades
 4. Usa el filtro de actividades para buscar una atención específica
 5. Descarga los resultados en CSV si es necesario
 
-### Búsqueda por Actividad
+### 3. Búsqueda por Actividad
 
-1. Selecciona una actividad del menú desplegable
+1. Selecciona una actividad del menú desplegable (catálogo compartido)
 2. Haz clic en **"Buscar Pacientes"**
 3. Visualiza:
-   - Lista de todos los pacientes
+   - Lista de todos los pacientes de la sede seleccionada
    - Datos demográficos
    - Fechas de atención
    - Estadísticas agregadas
 4. Descarga los resultados en CSV si es necesario
+
+> **💡 Tip**: Para buscar en otra sede, simplemente cambia la selección en el menú desplegable superior. Los datos se recargarán automáticamente.
 
 ## 📈 Información Mostrada
 
@@ -143,6 +163,51 @@ La aplicación funciona en modo cascada:
 - **Datos Demográficos**: Nombre, sexo
 - **Fechas de Atención**: Cuándo recibieron la actividad
 - **Estadísticas**: Total de pacientes, distribución por sexo
+
+## ➕ Agregar Nuevas Sedes
+
+Para agregar una nueva sede al sistema, sigue estos pasos:
+
+### 1. Organizar Archivos en SharePoint
+
+Crea una carpeta para la nueva sede en SharePoint:
+
+```
+/Analisis de Datos/
+  ├── BD_SITIS/              # Sede Principal (existente)
+  │   ├── DAT_PER.csv
+  │   ├── HISTORICO_PYP.csv
+  │   ├── CAB_FAC.csv
+  │   └── ACTXPROG_filtrado.csv  # Catálogo compartido
+  │
+  └── BD_SITIS_NUEVA/        # Nueva Sede
+      ├── DAT_PER.csv
+      ├── HISTORICO_PYP.csv
+      └── CAB_FAC.csv
+```
+
+### 2. Actualizar Configuración
+
+Edita `config_sharepoint.py` y agrega la nueva sede al diccionario `SEDES`:
+
+```python
+SEDES = {
+    'PRINCIPAL': {
+        'nombre': 'Sede Principal',
+        'carpeta': 'BD_SITIS',
+        'descripcion': 'Hospital Madre Dominga - Sede Principal'
+    },
+    'NUEVA_SEDE': {  # ← Agregar aquí
+        'nombre': 'Sede Nueva',
+        'carpeta': 'BD_SITIS_NUEVA',
+        'descripcion': 'Hospital Madre Dominga - Sede Nueva'
+    },
+}
+```
+
+### 3. ¡Listo!
+
+La aplicación detectará automáticamente la nueva sede y la mostrará en el selector. No se requieren cambios adicionales.
 
 ## 🔐 Seguridad
 

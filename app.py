@@ -11,6 +11,7 @@ import numpy as np
 from datetime import datetime
 import re
 from sharepoint_loader import sharepoint_loader
+import config_sharepoint as config
 
 # Función para normalizar textos con caracteres especiales
 def normalizar_texto(texto):
@@ -64,19 +65,20 @@ st.set_page_config(
     layout="wide"
 )
 
-# Función para cargar datos con caché
+# Función para cargar datos con caché (compartidos - catálogo único)
 @st.cache_data
 def cargar_actividades():
-    """Carga el catálogo de actividades filtradas"""
-    df = sharepoint_loader.load_csv('ACTXPROG_FILTRADO', encoding='utf-8')
+    """Carga el catálogo de actividades filtradas (compartido entre todas las sedes)"""
+    df = sharepoint_loader.load_csv('ACTXPROG_FILTRADO', sede_id=None, encoding='utf-8')
     # Normalizar descripciones
     df['DES_ACTXPROG'] = df['DES_ACTXPROG'].apply(normalizar_texto)
     return df
 
+# Funciones para cargar datos por sede
 @st.cache_data
-def cargar_datos_pacientes():
-    """Carga los datos de pacientes"""
-    df = sharepoint_loader.load_csv('DAT_PER', encoding='utf-8')
+def cargar_datos_pacientes(sede_id):
+    """Carga los datos de pacientes de una sede específica"""
+    df = sharepoint_loader.load_csv('DAT_PER', sede_id=sede_id, encoding='utf-8')
     # Convertir IDE_PAC a string para búsqueda
     df['IDE_PAC'] = df['IDE_PAC'].astype(str)
     
@@ -97,16 +99,16 @@ def cargar_datos_pacientes():
     return df
 
 @st.cache_data
-def cargar_historico_pyp():
-    """Carga el histórico de PyP"""
-    df = sharepoint_loader.load_csv('HISTORICO_PYP', encoding='utf-8')
+def cargar_historico_pyp(sede_id):
+    """Carga el histórico de PyP de una sede específica"""
+    df = sharepoint_loader.load_csv('HISTORICO_PYP', sede_id=sede_id, encoding='utf-8')
     return df
 
 @st.cache_data
-def cargar_cab_fac():
-    """Carga las facturas (cabecera)"""
+def cargar_cab_fac(sede_id):
+    """Carga las facturas (cabecera) de una sede específica"""
     # Cargar solo las columnas necesarias para optimizar memoria
-    df = sharepoint_loader.load_csv('CAB_FAC', encoding='utf-8', usecols=['IDCAB_FAC', 'FAC_FEC'])
+    df = sharepoint_loader.load_csv('CAB_FAC', sede_id=sede_id, encoding='utf-8', usecols=['IDCAB_FAC', 'FAC_FEC'])
     return df
 
 def buscar_paciente_por_documento(documento, df_pacientes):
@@ -214,14 +216,43 @@ def buscar_pacientes_por_actividad(id_actividad, df_historico, df_pacientes, df_
 st.title("🏥 Sistema de Consulta de Atenciones SITIS")
 st.markdown("---")
 
-# Cargar datos
-with st.spinner('Cargando datos...'):
+# ============= SELECTOR DE SEDE =============
+st.subheader("📍 Seleccione la Sede")
+
+# Crear opciones para el selectbox
+opciones_sedes = {
+    sede_id: info['nombre'] 
+    for sede_id, info in config.SEDES.items()
+}
+
+col1, col2 = st.columns([2, 3])
+
+with col1:
+    sede_seleccionada = st.selectbox(
+        "Sede:",
+        options=list(opciones_sedes.keys()),
+        format_func=lambda x: opciones_sedes[x],
+        key='selector_sede'
+    )
+
+with col2:
+    if sede_seleccionada in config.SEDES:
+        st.info(f"ℹ️ {config.SEDES[sede_seleccionada]['descripcion']}")
+
+st.markdown("---")
+
+# Cargar datos de la sede seleccionada
+with st.spinner(f'Cargando datos de {opciones_sedes[sede_seleccionada]}...'):
     try:
+        # Catálogo compartido (una sola vez)
         df_actividades = cargar_actividades()
-        df_pacientes = cargar_datos_pacientes()
-        df_historico = cargar_historico_pyp()
-        df_cab_fac = cargar_cab_fac()
-        st.success(f"✅ Datos cargados correctamente")
+        
+        # Datos específicos de la sede
+        df_pacientes = cargar_datos_pacientes(sede_seleccionada)
+        df_historico = cargar_historico_pyp(sede_seleccionada)
+        df_cab_fac = cargar_cab_fac(sede_seleccionada)
+        
+        st.success(f"✅ Datos de {opciones_sedes[sede_seleccionada]} cargados correctamente")
     except Exception as e:
         st.error(f"❌ Error al cargar datos: {str(e)}")
         st.stop()

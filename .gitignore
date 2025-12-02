@@ -4,9 +4,10 @@
 # Archivos de otros proyectos
 Suturas_*.py
 
-# Archivos de documentación (excepto README.md)
+# Archivos de documentación (excepto README.md y guías importantes)
 *.md
 !README.md
+!MULTI_SEDE_GUIA.md
 
 # Archivos de texto de instrucciones
 *.txt
