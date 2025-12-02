@@ -262,18 +262,18 @@ class SharePointLoader:
                 # Guardar en cache
                 self._save_to_cache(file_name, file_content, sede_id)
                 
-                # Leer CSV
-                return pd.read_csv(file_content, encoding=encoding, **kwargs)
+                # Leer CSV con low_memory=False para evitar warnings
+                return pd.read_csv(file_content, encoding=encoding, low_memory=False, **kwargs)
         
         # Fallback: intentar cargar desde cache
         cache_path = self._load_from_cache(file_name, sede_id)
         if cache_path:
             print(f"📂 Cargando {file_name} desde cache ({sede_label})...")
-            return pd.read_csv(cache_path, encoding=encoding, **kwargs)
+            return pd.read_csv(cache_path, encoding=encoding, low_memory=False, **kwargs)
         
         # Fallback final: archivo local
         print(f"📁 Cargando {file_name} desde archivo local...")
-        return pd.read_csv(file_name, encoding=encoding, **kwargs)
+        return pd.read_csv(file_name, encoding=encoding, low_memory=False, **kwargs)
 
 
 # Instancia global del loader
