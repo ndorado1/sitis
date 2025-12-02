@@ -9,8 +9,10 @@ Silvia/
 Silvia_Vieja/
 Silvia_Nueva/
 
-# Scripts de consolidación temporal
+# Scripts de consolidación y verificación (temporales de trabajo)
 consolidar_sedes.py
+consolidar_sedes_corregido.py
+verificar_duplicados.py
 
 # Archivos de otros proyectos
 Suturas_*.py
