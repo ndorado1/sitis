@@ -26,6 +26,7 @@ Suturas_*.py
 !CONSOLIDACION_SEDES.md
 !STREAMLIT_CLOUD_LIMITACIONES.md
 !DESPLIEGUE_VPS.md
+!EASYPANEL_CONFIG.md
 
 # Archivos de texto de instrucciones
 *.txt
@@ -61,6 +62,7 @@ env/
 *.swp
 *.swo
 
-# Cache de Streamlit
-.streamlit/
+# Cache de Streamlit (excepto config.toml)
+.streamlit/*
+!.streamlit/config.toml
 

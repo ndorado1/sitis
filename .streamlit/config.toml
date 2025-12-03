@@ -1,0 +1,38 @@
+[server]
+# Puerto donde Streamlit escucha
+port = 8501
+
+# Dirección - 0.0.0.0 permite acceso externo
+address = "0.0.0.0"
+
+# Modo headless (sin navegador)
+headless = true
+
+# Deshabilitar CORS para permitir acceso desde cualquier origen
+enableCORS = false
+
+# Permitir WebSocket desde cualquier origen
+enableXsrfProtection = false
+
+# Aumentar timeout para carga inicial
+fileWatcherType = "none"
+
+[browser]
+# No intentar abrir navegador
+gatherUsageStats = false
+serverAddress = "0.0.0.0"
+serverPort = 8501
+
+[logger]
+level = "info"
+
+[client]
+# Timeout para conexión del cliente
+showErrorDetails = true
+toolbarMode = "minimal"
+
+[runner]
+# Aumentar timeout para scripts largos
+magicEnabled = true
+fastReruns = true
+
