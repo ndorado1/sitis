@@ -216,20 +216,32 @@ def cargar_cab_fac_consolidado():
     return df_consolidado
 
 def buscar_paciente_por_documento(documento, df_pacientes):
-    """Busca un paciente por su documento de identidad"""
+    """Busca un paciente por su documento de identidad en TODAS las sedes"""
     resultado = df_pacientes[df_pacientes['IDE_PAC'] == str(documento)]
     if not resultado.empty:
-        return resultado.iloc[0]
+        # Devolver TODOS los registros del paciente (puede estar en múltiples sedes)
+        return resultado
     return None
 
-def buscar_atenciones_paciente(id_paciente, df_historico, df_cab_fac, df_actividades):
-    """Busca todas las atenciones de un paciente en TODAS las sedes"""
+def buscar_atenciones_paciente(ids_paciente, df_historico, df_cab_fac, df_actividades):
+    """Busca todas las atenciones de un paciente en TODAS las sedes
+    
+    Args:
+        ids_paciente: Lista de ID_PACIENTE (el mismo documento puede tener diferentes IDs en cada sede)
+        df_historico: DataFrame con histórico de atenciones
+        df_cab_fac: DataFrame con facturas
+        df_actividades: DataFrame con actividades válidas
+    """
     # Obtener lista de códigos de actividades válidas
     codigos_validos = df_actividades['ID_ACTXPROG'].tolist()
     
-    # Filtrar atenciones del paciente SOLO con actividades mapeadas
+    # Convertir a lista si es un solo valor
+    if not isinstance(ids_paciente, list):
+        ids_paciente = [ids_paciente]
+    
+    # Filtrar atenciones del paciente en TODAS las sedes SOLO con actividades mapeadas
     atenciones = df_historico[
-        (df_historico['ID_PACIENTE'] == id_paciente) & 
+        (df_historico['ID_PACIENTE'].isin(ids_paciente)) & 
         (df_historico['ID_ACTPYP'].isin(codigos_validos))
     ].copy()
     
@@ -446,28 +458,42 @@ with tab1:
         st.markdown("---")
         
         with st.spinner('Buscando paciente...'):
-            paciente = buscar_paciente_por_documento(documento_buscar, df_pacientes)
+            paciente_df = buscar_paciente_por_documento(documento_buscar, df_pacientes)
             
-            if paciente is not None:
+            if paciente_df is not None and not paciente_df.empty:
+                # El paciente puede estar en múltiples sedes
+                num_sedes = len(paciente_df)
+                sedes_lista = paciente_df['SEDE'].unique().tolist()
+                
                 # Mostrar información del paciente
-                st.success("✅ Paciente encontrado")
+                if num_sedes > 1:
+                    st.success(f"✅ Paciente encontrado en {num_sedes} sede(s): {', '.join(sedes_lista)}")
+                else:
+                    st.success("✅ Paciente encontrado")
+                
+                # Usar datos del primer registro para info general
+                paciente_info = paciente_df.iloc[0]
                 
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
-                    st.metric("Sede", paciente['SEDE'])
+                    if num_sedes > 1:
+                        st.metric("Sedes", ', '.join(sedes_lista))
+                    else:
+                        st.metric("Sede", paciente_info['SEDE'])
                 with col2:
-                    st.metric("Tipo Documento", paciente['COD_TID'])
+                    st.metric("Tipo Documento", paciente_info['COD_TID'])
                 with col3:
-                    st.metric("Documento", paciente['IDE_PAC'])
+                    st.metric("Documento", paciente_info['IDE_PAC'])
                 with col4:
-                    st.metric("Sexo", paciente['SEX_PAC'])
+                    st.metric("Sexo", paciente_info['SEX_PAC'])
                 
-                st.subheader(f"📋 Paciente: {paciente['NOMBRE_COMPLETO']}")
+                st.subheader(f"📋 Paciente: {paciente_info['NOMBRE_COMPLETO']}")
                 
-                # Buscar atenciones
-                with st.spinner('Buscando atenciones...'):
+                # Buscar atenciones usando TODOS los ID_PACIENTE (de todas las sedes)
+                with st.spinner('Buscando atenciones en todas las sedes...'):
+                    ids_paciente = paciente_df['ID_PACIENTE'].tolist()
                     atenciones = buscar_atenciones_paciente(
-                        paciente['ID_PACIENTE'], 
+                        ids_paciente, 
                         df_historico, 
                         df_cab_fac,
                         df_actividades
@@ -552,9 +578,9 @@ with tab1:
                             mime="text/csv",
                         )
                     else:
-                        st.warning("⚠️ No se encontraron atenciones para este paciente")
+                        st.warning("⚠️ No se encontraron atenciones para este paciente en ninguna sede")
             else:
-                st.error("❌ No se encontró ningún paciente con ese documento")
+                st.error("❌ No se encontró ningún paciente con ese documento en ninguna sede")
                 st.session_state['busqueda_activa'] = False
 
 # ============= TAB 2: BÚSQUEDA POR ACTIVIDAD =============
