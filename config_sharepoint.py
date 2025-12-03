@@ -80,6 +80,10 @@ SHAREPOINT_TENANT_ID = os.getenv('SHAREPOINT_TENANT_ID', '')
 # Si True, intenta leer desde SharePoint. Si False, lee archivos locales
 USE_SHAREPOINT = True  # Activado para usar SharePoint
 
+# Modo de carga de sedes (para control en producción)
+# 'ALL' = Cargar todas las sedes | 'PRINCIPAL' = Solo sede principal
+MODO_CARGA_SEDES = os.getenv('MODO_CARGA_SEDES', 'PRINCIPAL')  # Por defecto solo principal
+
 # Cache local de archivos (para mejorar rendimiento)
 CACHE_LOCAL = True
 CACHE_DIRECTORY = './cache_sharepoint'

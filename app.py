@@ -81,10 +81,10 @@ def cargar_datos_pacientes_consolidado():
     """Carga y consolida datos de pacientes de TODAS las sedes"""
     dfs = []
     
-    # Limitar a solo Principal en Streamlit Cloud para evitar problemas de memoria
+    # Determinar sedes a cargar según configuración
     sedes_a_cargar = config.SEDES
-    if 'STREAMLIT_SHARING_MODE' in os.environ:
-        st.warning("⚠️ Modo Streamlit Cloud: Cargando solo Sede Principal para optimizar memoria")
+    if config.MODO_CARGA_SEDES == 'PRINCIPAL':
+        st.info("ℹ️ Cargando solo Sede Principal (configurable con MODO_CARGA_SEDES=ALL)")
         sedes_a_cargar = {k: v for k, v in config.SEDES.items() if k == 'PRINCIPAL'}
     
     for sede_id, sede_info in sedes_a_cargar.items():
@@ -134,9 +134,9 @@ def cargar_historico_pyp_consolidado():
     """Carga y consolida histórico de PyP de TODAS las sedes"""
     dfs = []
     
-    # Limitar a solo Principal en Streamlit Cloud
+    # Determinar sedes a cargar según configuración
     sedes_a_cargar = config.SEDES
-    if 'STREAMLIT_SHARING_MODE' in os.environ:
+    if config.MODO_CARGA_SEDES == 'PRINCIPAL':
         sedes_a_cargar = {k: v for k, v in config.SEDES.items() if k == 'PRINCIPAL'}
     
     for sede_id, sede_info in sedes_a_cargar.items():
@@ -169,9 +169,9 @@ def cargar_cab_fac_consolidado():
     """Carga y consolida facturas (cabecera) de TODAS las sedes"""
     dfs = []
     
-    # Limitar a solo Principal en Streamlit Cloud
+    # Determinar sedes a cargar según configuración
     sedes_a_cargar = config.SEDES
-    if 'STREAMLIT_SHARING_MODE' in os.environ:
+    if config.MODO_CARGA_SEDES == 'PRINCIPAL':
         sedes_a_cargar = {k: v for k, v in config.SEDES.items() if k == 'PRINCIPAL'}
     
     for sede_id, sede_info in sedes_a_cargar.items():
@@ -309,11 +309,15 @@ st.title("🏥 Sistema de Consulta de Atenciones SITIS")
 st.caption("📊 Vista consolidada de todas las sedes")
 st.markdown("---")
 
-# Advertencia para Streamlit Cloud
-if 'STREAMLIT_SHARING_MODE' in os.environ:
-    st.info("⏳ Cargando datos... Esto puede tomar 1-2 minutos en la primera ejecución. Streamlit Cloud tiene límites de memoria, cargando solo sedes disponibles.")
+# Debug info (solo si hay problemas)
+with st.expander("ℹ️ Información del sistema", expanded=False):
+    st.write(f"**Modo de carga**: {config.MODO_CARGA_SEDES}")
+    st.write(f"**SharePoint**: {'✅ Habilitado' if config.USE_SHAREPOINT else '❌ Deshabilitado'}")
+    st.write(f"**Sedes configuradas**: {len(config.SEDES)}")
+    for sede_id, info in config.SEDES.items():
+        st.write(f"  - {sede_id}: {info['nombre']}")
 
-# Cargar datos consolidados de TODAS las sedes
+# Cargar datos consolidados de TODAS las sedes (o solo Principal según configuración)
 with st.spinner('Cargando datos de todas las sedes...'):
     try:
         # Catálogo compartido
@@ -340,6 +344,19 @@ with st.spinner('Cargando datos de todas las sedes...'):
     except Exception as e:
         st.error(f"❌ Error al cargar datos: {str(e)}")
         st.info("💡 Tip: Verifica que las sedes estén configuradas correctamente en config_sharepoint.py")
+        
+        # Mostrar más detalles del error para debugging
+        import traceback
+        with st.expander("🐛 Detalles técnicos del error"):
+            st.code(traceback.format_exc())
+        
+        # Mostrar configuración actual
+        with st.expander("⚙️ Configuración actual"):
+            st.write(f"- USE_SHAREPOINT: {config.USE_SHAREPOINT}")
+            st.write(f"- MODO_CARGA_SEDES: {config.MODO_CARGA_SEDES}")
+            st.write(f"- Sedes configuradas: {list(config.SEDES.keys())}")
+            st.write(f"- Client ID configurado: {'✅ Sí' if config.SHAREPOINT_CLIENT_ID else '❌ No'}")
+        
         st.stop()
 
 st.markdown("---")
