@@ -115,17 +115,28 @@ else
 fi
 echo ""
 
-# 8. Iniciar Streamlit
+# 8. Test de importación de la app ANTES de iniciar Streamlit
+log_info "Testeando importación de app.py..."
+if python -c "import app" 2>&1; then
+    log_success "Importación OK"
+else
+    log_error "Error al importar app.py - ver detalles arriba"
+    exit 1
+fi
+echo ""
+
+# 9. Iniciar Streamlit
 log_info "Iniciando Streamlit..."
 echo "=========================================="
 echo ""
 
-# Ejecutar Streamlit con logs detallados
+# Ejecutar Streamlit con logs detallados y captura de errores
+export PYTHONUNBUFFERED=1
 exec streamlit run app.py \
     --server.port=8501 \
     --server.address=0.0.0.0 \
     --server.headless=true \
     --browser.gatherUsageStats=false \
-    --logger.level=info \
-    2>&1 | tee /tmp/streamlit.log
+    --logger.level=debug \
+    2>&1
 

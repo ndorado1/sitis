@@ -334,18 +334,38 @@ with st.expander("ℹ️ Información del sistema", expanded=False):
         st.write(f"  - {sede_id}: {info['nombre']}")
 
 # Cargar datos consolidados de TODAS las sedes (o solo Principal según configuración)
+print("\n" + "="*70)
+print("📊 INICIANDO CARGA DE DATOS")
+print("="*70)
+
 with st.spinner('Cargando datos de todas las sedes...'):
     try:
+        print(f"Modo de carga: {config.MODO_CARGA_SEDES}")
+        print(f"Sedes a cargar: {list(config.SEDES.keys())}")
+        
         # Catálogo compartido
+        print("\n1️⃣ Cargando catálogo de actividades...")
         df_actividades = cargar_actividades()
+        print(f"   ✅ {len(df_actividades)} actividades cargadas")
         
         # Datos consolidados de todas las sedes
+        print("\n2️⃣ Cargando datos de pacientes...")
         df_pacientes = cargar_datos_pacientes_consolidado()
+        print(f"   ✅ {len(df_pacientes)} pacientes cargados")
+        
+        print("\n3️⃣ Cargando histórico de atenciones...")
         df_historico = cargar_historico_pyp_consolidado()
+        print(f"   ✅ {len(df_historico)} atenciones cargadas")
+        
+        print("\n4️⃣ Cargando facturas...")
         df_cab_fac = cargar_cab_fac_consolidado()
+        print(f"   ✅ {len(df_cab_fac)} facturas cargadas")
         
         # Mostrar información de sedes cargadas
         sedes_cargadas = df_pacientes['SEDE'].unique()
+        print(f"\n🎉 CARGA COMPLETADA: {len(sedes_cargadas)} sede(s)")
+        print("="*70)
+        
         st.success(f"✅ Datos consolidados de {len(sedes_cargadas)} sede(s): {', '.join(sedes_cargadas)}")
         
         # Mostrar estadísticas rápidas
@@ -358,11 +378,21 @@ with st.spinner('Cargando datos de todas las sedes...'):
             st.metric("Total Facturas", f"{len(df_cab_fac):,}")
         
     except Exception as e:
+        # Imprimir error en consola para logs de Docker
+        print("\n" + "="*70)
+        print("❌ ERROR CRÍTICO AL CARGAR DATOS")
+        print("="*70)
+        print(f"Error: {str(e)}")
+        print("\nTraceback completo:")
+        import traceback
+        traceback.print_exc()
+        print("="*70)
+        
+        # Mostrar en UI también
         st.error(f"❌ Error al cargar datos: {str(e)}")
         st.info("💡 Tip: Verifica que las sedes estén configuradas correctamente en config_sharepoint.py")
         
         # Mostrar más detalles del error para debugging
-        import traceback
         with st.expander("🐛 Detalles técnicos del error"):
             st.code(traceback.format_exc())
         
@@ -373,7 +403,8 @@ with st.spinner('Cargando datos de todas las sedes...'):
             st.write(f"- Sedes configuradas: {list(config.SEDES.keys())}")
             st.write(f"- Client ID configurado: {'✅ Sí' if config.SHAREPOINT_CLIENT_ID else '❌ No'}")
         
-        st.stop()
+        # NO hacer st.stop() - dejar que falle para que Docker lo capture
+        raise
 
 st.markdown("---")
 
