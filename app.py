@@ -5,14 +5,30 @@ Sistema de Consulta de Atenciones de Pacientes - SITIS
 Aplicación Streamlit para consultar historico de atenciones
 """
 
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Logging de inicio para debugging
+print("="*70)
+print("🚀 Iniciando aplicación SITIS...")
+print("="*70)
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 from datetime import datetime
 import re
 import os
+
+print("✅ Módulos básicos importados")
+
 from sharepoint_loader import sharepoint_loader
+print("✅ SharePoint loader importado")
+
 import config_sharepoint as config
+print(f"✅ Config importado - Modo: {config.MODO_CARGA_SEDES}")
+print(f"   Sedes configuradas: {list(config.SEDES.keys())}")
+print("="*70)
 
 # Función para normalizar textos con caracteres especiales
 def normalizar_texto(texto):
