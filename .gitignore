@@ -1,5 +1,7 @@
 # Archivos CSV (ahora se cargan desde SharePoint)
 *.csv
+# EXCEPTO el catálogo de actividades (pequeño y necesario para Docker)
+!ACTXPROG_filtrado.csv
 
 # Carpetas de trabajo para consolidación de sedes
 Piendamo/
