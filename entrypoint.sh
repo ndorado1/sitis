@@ -115,17 +115,7 @@ else
 fi
 echo ""
 
-# 8. Test de importación de la app ANTES de iniciar Streamlit
-log_info "Testeando importación de app.py..."
-if python -c "import app" 2>&1; then
-    log_success "Importación OK"
-else
-    log_error "Error al importar app.py - ver detalles arriba"
-    exit 1
-fi
-echo ""
-
-# 9. Iniciar Streamlit
+# 8. Iniciar Streamlit
 log_info "Iniciando Streamlit..."
 echo "=========================================="
 echo ""

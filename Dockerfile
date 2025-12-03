@@ -45,7 +45,10 @@ COPY ACTXPROG_filtrado.csv .
 COPY entrypoint.sh .
 
 # Crear directorios necesarios
-RUN mkdir -p cache_sharepoint .streamlit
+RUN mkdir -p cache_sharepoint
+
+# Copiar configuración de Streamlit
+COPY .streamlit/ .streamlit/
 
 # Configurar Streamlit
 RUN echo '\

@@ -39,7 +39,8 @@ Silvia_Nueva/
 
 # Cache
 cache_sharepoint/
-.streamlit/
+.streamlit/secrets.toml
+!.streamlit/config.toml
 
 # Scripts de consolidación
 consolidar_sedes.py
