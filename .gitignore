@@ -28,11 +28,9 @@ Suturas_*.py
 # Archivos de documentación (excepto README.md y guías importantes)
 *.md
 !README.md
-!MULTI_SEDE_GUIA.md
-!CONSOLIDACION_SEDES.md
-!STREAMLIT_CLOUD_LIMITACIONES.md
 !DESPLIEGUE_VPS.md
 !EASYPANEL_CONFIG.md
+!MIGRACION_SQLITE_INSTRUCCIONES.md
 
 # Archivos de texto de instrucciones
 *.txt
