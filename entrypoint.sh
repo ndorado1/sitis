@@ -61,11 +61,7 @@ if [ ! -f "config_sharepoint.py" ]; then
     log_error "No se encuentra config_sharepoint.py"
     exit 1
 fi
-if [ ! -f "ACTXPROG_filtrado.csv" ]; then
-    log_error "No se encuentra ACTXPROG_filtrado.csv"
-    exit 1
-fi
-log_success "Archivos OK"
+log_success "Archivos OK (SQLite mode)"
 echo ""
 
 # 4. Verificar variables de entorno
@@ -87,7 +83,7 @@ fi
 echo "  - SHAREPOINT_CLIENT_ID: ${SHAREPOINT_CLIENT_ID:0:8}...${SHAREPOINT_CLIENT_ID: -4}"
 echo "  - SHAREPOINT_CLIENT_SECRET: ********"
 echo "  - SHAREPOINT_TENANT_ID: ${SHAREPOINT_TENANT_ID:0:8}...${SHAREPOINT_TENANT_ID: -4}"
-echo "  - MODO_CARGA_SEDES: ${MODO_CARGA_SEDES:-PRINCIPAL}"
+echo "  - Arquitectura: SQLite consolidado"
 log_success "Variables de entorno OK"
 echo ""
 
@@ -115,7 +111,15 @@ else
 fi
 echo ""
 
-# 8. Iniciar Streamlit
+# 8. Información sobre la base de datos
+log_info "Base de datos:"
+echo "  - Tipo: SQLite consolidado"
+echo "  - Fuente: SharePoint (/Analisis de Datos/sitis_consolidado.db)"
+echo "  - Cache local: ./cache_sharepoint/"
+echo "  - Primera carga puede tardar 2-3 minutos (descarga 124 MB)"
+echo ""
+
+# 9. Iniciar Streamlit
 log_info "Iniciando Streamlit..."
 echo "=========================================="
 echo ""
