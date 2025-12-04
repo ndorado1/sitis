@@ -20,3 +20,4 @@ echo "✅ Cache limpiado!"
 echo ""
 echo "💡 Ahora ejecuta: streamlit run app.py"
 
+

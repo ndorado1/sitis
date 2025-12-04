@@ -41,7 +41,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py .
 COPY sharepoint_loader.py .
 COPY config_sharepoint.py .
-COPY ACTXPROG_filtrado.csv .
 COPY entrypoint.sh .
 
 # Crear directorios necesarios

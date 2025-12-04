@@ -1,7 +1,13 @@
 # Archivos CSV (ahora se cargan desde SharePoint)
 *.csv
-# EXCEPTO el catálogo de actividades (pequeño y necesario para Docker)
-!ACTXPROG_filtrado.csv
+
+# Archivos de base de datos SQLite
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivo Excel consolidado (grande, no subir)
+consolidado_sitis.xlsx
 
 # Carpetas de trabajo para consolidación de sedes
 Piendamo/

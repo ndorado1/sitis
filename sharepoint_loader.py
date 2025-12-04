@@ -1,295 +1,218 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Módulo para cargar archivos CSV desde SharePoint usando Microsoft Graph API
-Requiere: pip install msal requests pandas
+SharePoint SQLite Loader
+Descarga y gestiona la base de datos SQLite desde SharePoint
 """
 
-import pandas as pd
-import os
 import requests
-from io import BytesIO
-import streamlit as st
-
-try:
-    from msal import ConfidentialClientApplication
-    SHAREPOINT_AVAILABLE = True
-except ImportError:
-    SHAREPOINT_AVAILABLE = False
-    print("⚠️ MSAL no está instalado. Usando archivos locales.")
-
+import os
+import sqlite3
+import time
+from pathlib import Path
+from msal import ConfidentialClientApplication
 import config_sharepoint as config
 
-
-class SharePointLoader:
-    """Clase para cargar archivos desde SharePoint usando Microsoft Graph API"""
+class SharePointSQLiteLoader:
+    """Clase para descargar y gestionar SQLite desde SharePoint"""
     
     def __init__(self):
-        self.use_sharepoint = config.USE_SHAREPOINT and SHAREPOINT_AVAILABLE
+        """Inicializa el loader con autenticación de Azure AD"""
         self.access_token = None
         self.site_id = None
         self.drive_id = None
         
-        if self.use_sharepoint:
+        # Crear directorio de cache si no existe
+        if config.CACHE_LOCAL:
+            os.makedirs(config.CACHE_DIRECTORY, exist_ok=True)
+        
+        if config.USE_SHAREPOINT:
+            print("🔐 Autenticando con SharePoint (Azure AD)...")
             self._authenticate()
-            if self.access_token:
-                self._get_site_and_drive_info()
+            self._get_site_and_drive_ids()
+            print("✅ Conectado a SharePoint")
     
     def _authenticate(self):
-        """Autenticar con Microsoft Graph usando MSAL"""
+        """Autentica usando Azure AD con Client ID y Secret"""
         try:
-            if config.SHAREPOINT_CLIENT_ID and config.SHAREPOINT_CLIENT_SECRET and config.SHAREPOINT_TENANT_ID:
-                print("🔐 Autenticando con Microsoft Graph (MSAL)...")
-                
-                # Configurar la autoridad y scope
-                authority = f'https://login.microsoftonline.com/{config.SHAREPOINT_TENANT_ID}'
-                scope = ['https://graph.microsoft.com/.default']
-                
-                # Crear aplicación confidencial
-                app = ConfidentialClientApplication(
-                    config.SHAREPOINT_CLIENT_ID,
-                    authority=authority,
-                    client_credential=config.SHAREPOINT_CLIENT_SECRET
-                )
-                
-                # Adquirir token
-                result = app.acquire_token_for_client(scopes=scope)
-                
-                if "access_token" in result:
-                    self.access_token = result['access_token']
-                    print("✅ Token de acceso obtenido exitosamente")
-                else:
-                    error = result.get("error_description", result.get("error", "Error desconocido"))
-                    print(f"❌ Error al obtener token: {error}")
-                    self.use_sharepoint = False
+            authority = f"https://login.microsoftonline.com/{config.SHAREPOINT_TENANT_ID}"
+            scope = ["https://graph.microsoft.com/.default"]
+            
+            app = ConfidentialClientApplication(
+                config.SHAREPOINT_CLIENT_ID,
+                authority=authority,
+                client_credential=config.SHAREPOINT_CLIENT_SECRET
+            )
+            
+            result = app.acquire_token_for_client(scopes=scope)
+            
+            if "access_token" in result:
+                self.access_token = result['access_token']
+                print("   ✅ Token de acceso obtenido")
             else:
-                print("⚠️ No hay credenciales configuradas. Usando archivos locales.")
-                self.use_sharepoint = False
+                error_msg = result.get('error_description', 'Error desconocido')
+                raise Exception(f"Error obteniendo token: {error_msg}")
                 
         except Exception as e:
-            print(f"❌ Error al conectar con Microsoft Graph: {e}")
-            print(f"    Detalles: {str(e)}")
-            self.use_sharepoint = False
+            print(f"   ❌ Error en autenticación: {e}")
+            raise
     
-    def _get_site_and_drive_info(self):
-        """Obtener el site_id y drive_id del sitio de SharePoint"""
+    def _get_site_and_drive_ids(self):
+        """Obtiene los IDs del sitio y drive de SharePoint"""
         try:
-            # Extraer el hostname y site path de la URL
-            # https://mamadominga.sharepoint.com/sites/IntranetHMD
-            parts = config.SHAREPOINT_SITE_URL.replace('https://', '').split('/')
-            hostname = parts[0]  # mamadominga.sharepoint.com
-            site_path = '/'.join(parts[1:])  # sites/IntranetHMD
+            headers = {
+                'Authorization': f'Bearer {self.access_token}',
+                'Content-Type': 'application/json'
+            }
             
-            print(f"📍 Obteniendo información del sitio: {hostname}:/{site_path}")
+            # Obtener Site ID
+            hostname = config.SHAREPOINT_SITE_URL.replace('https://', '').split('/')[0]
+            site_path = '/'.join(config.SHAREPOINT_SITE_URL.replace('https://', '').split('/')[1:])
             
-            # Obtener información del sitio
-            headers = {'Authorization': f'Bearer {self.access_token}'}
             site_url = f"https://graph.microsoft.com/v1.0/sites/{hostname}:/{site_path}"
-            
             response = requests.get(site_url, headers=headers)
             response.raise_for_status()
+            self.site_id = response.json()['id']
             
-            site_data = response.json()
-            self.site_id = site_data['id']
-            
-            print(f"✅ Site ID obtenido: {self.site_id}")
-            
-            # Obtener el drive principal del sitio
+            # Obtener Drive ID
             drive_url = f"https://graph.microsoft.com/v1.0/sites/{self.site_id}/drive"
             response = requests.get(drive_url, headers=headers)
             response.raise_for_status()
+            self.drive_id = response.json()['id']
             
-            drive_data = response.json()
-            self.drive_id = drive_data['id']
-            
-            print(f"✅ Drive ID obtenido: {self.drive_id}")
+            print(f"   ✅ Site y Drive IDs obtenidos")
             
         except Exception as e:
-            print(f"❌ Error al obtener información del sitio/drive: {e}")
-            self.use_sharepoint = False
+            print(f"   ❌ Error obteniendo IDs: {e}")
+            raise
     
-    def _list_root_folders(self):
-        """Listar carpetas en la raíz del drive para debugging"""
+    def _download_file_from_sharepoint(self, file_path, local_path):
+        """Descarga un archivo desde SharePoint usando Microsoft Graph API"""
         try:
-            headers = {'Authorization': f'Bearer {self.access_token}'}
-            list_url = f"https://graph.microsoft.com/v1.0/sites/{self.site_id}/drives/{self.drive_id}/root/children"
+            print(f"📥 Descargando desde SharePoint: {file_path}")
             
-            response = requests.get(list_url, headers=headers)
-            response.raise_for_status()
+            headers = {
+                'Authorization': f'Bearer {self.access_token}'
+            }
             
-            items = response.json().get('value', [])
-            print("\n📂 Carpetas/archivos en la raíz del drive:")
-            for item in items:
-                item_type = "📁" if item.get('folder') else "📄"
-                print(f"   {item_type} {item['name']}")
-            print()
+            # URL del archivo en el drive
+            file_url = f"https://graph.microsoft.com/v1.0/drives/{self.drive_id}/root:{file_path}:/content"
             
-        except Exception as e:
-            print(f"⚠️ No se pudo listar carpetas: {e}")
-    
-    def _download_file_from_sharepoint(self, file_name, sede_id=None):
-        """Descargar un archivo desde SharePoint usando Microsoft Graph API con streaming
-        
-        Args:
-            file_name: Nombre del archivo a descargar
-            sede_id: ID de la sede (None para archivos compartidos como catálogo)
-        """
-        if not self.use_sharepoint or not self.access_token or not self.site_id or not self.drive_id:
-            return None
-        
-        try:
-            # Determinar la ruta según si es archivo compartido o por sede
-            if file_name in config.ARCHIVOS_CSV_COMPARTIDOS.values():
-                # Archivos compartidos (catálogo): usar ruta del catálogo
-                folder_path = config.SHAREPOINT_CATALOGO_PATH.strip('/')
-            elif sede_id and sede_id in config.SEDES:
-                # Archivos por sede: usar carpeta de la sede
-                sede_carpeta = config.SEDES[sede_id]['carpeta']
-                folder_path = f"{config.SHAREPOINT_BASE_PATH}/{sede_carpeta}".strip('/')
-            else:
-                # Fallback: usar primera sede disponible
-                primera_sede = list(config.SEDES.keys())[0]
-                sede_carpeta = config.SEDES[primera_sede]['carpeta']
-                folder_path = f"{config.SHAREPOINT_BASE_PATH}/{sede_carpeta}".strip('/')
-            
-            file_path = f"{folder_path}/{file_name}"
-            
-            print(f"📡 Streaming: {file_path}")
-            
-            # Construir la URL de Graph API
-            headers = {'Authorization': f'Bearer {self.access_token}'}
-            file_url = f"https://graph.microsoft.com/v1.0/sites/{self.site_id}/drives/{self.drive_id}/root:/{file_path}:/content"
-            
-            # Descargar el archivo con streaming (no carga todo en memoria)
+            # Descargar con streaming para archivos grandes
             response = requests.get(file_url, headers=headers, stream=True)
             response.raise_for_status()
             
-            # Crear BytesIO y escribir en chunks para evitar cargar todo en memoria
-            file_content = BytesIO()
-            chunk_size = 8192  # 8KB chunks
-            total_bytes = 0
+            # Guardar archivo localmente con barra de progreso
+            total_size = int(response.headers.get('content-length', 0))
+            downloaded = 0
+            chunk_size = 8192
             
-            for chunk in response.iter_content(chunk_size=chunk_size):
-                if chunk:
-                    file_content.write(chunk)
-                    total_bytes += len(chunk)
+            with open(local_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=chunk_size):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if total_size > 0:
+                            progress = (downloaded / total_size) * 100
+                            print(f"   📊 Progreso: {progress:.1f}% ({downloaded/(1024*1024):.1f}MB/{total_size/(1024*1024):.1f}MB)", end='\r')
             
-            # Volver al inicio para que pandas pueda leerlo
-            file_content.seek(0)
+            print(f"\n   ✅ Descarga completada: {os.path.getsize(local_path)/(1024*1024):.2f} MB")
+            return True
             
-            # Convertir bytes a MB para mejor legibilidad
-            size_mb = total_bytes / (1024 * 1024)
-            print(f"✅ {file_name} leído exitosamente ({size_mb:.2f} MB)")
-            
-            return file_content
-        
         except requests.exceptions.HTTPError as e:
-            print(f"❌ Error HTTP al leer {file_name}: {e.response.status_code}")
-            print(f"    Respuesta: {e.response.text[:200]}")
-            return None
-        except Exception as e:
-            print(f"❌ Error al leer {file_name}: {e}")
-            return None
-    
-    def _save_to_cache(self, file_name, content, sede_id=None):
-        """Guardar archivo en cache local
-        
-        Args:
-            file_name: Nombre del archivo
-            content: Contenido del archivo (BytesIO)
-            sede_id: ID de la sede (None para archivos compartidos)
-        """
-        if config.CACHE_LOCAL:
-            cache_dir = config.CACHE_DIRECTORY
-            
-            # Crear subdirectorio por sede si es necesario
-            if sede_id and file_name not in config.ARCHIVOS_CSV_COMPARTIDOS.values():
-                cache_dir = os.path.join(cache_dir, sede_id)
-            
-            os.makedirs(cache_dir, exist_ok=True)
-            
-            cache_path = os.path.join(cache_dir, file_name)
-            with open(cache_path, 'wb') as f:
-                f.write(content.getvalue())
-    
-    def _load_from_cache(self, file_name, sede_id=None):
-        """Cargar archivo desde cache local
-        
-        Args:
-            file_name: Nombre del archivo
-            sede_id: ID de la sede (None para archivos compartidos)
-        """
-        if config.CACHE_LOCAL:
-            # Buscar en subdirectorio de sede si aplica
-            if sede_id and file_name not in config.ARCHIVOS_CSV_COMPARTIDOS.values():
-                cache_path = os.path.join(config.CACHE_DIRECTORY, sede_id, file_name)
+            if e.response.status_code == 404:
+                print(f"   ❌ Archivo no encontrado en SharePoint: {file_path}")
             else:
-                cache_path = os.path.join(config.CACHE_DIRECTORY, file_name)
-            
-            if os.path.exists(cache_path):
-                return cache_path
-        return None
+                print(f"   ❌ Error HTTP: {e}")
+            raise
+        except Exception as e:
+            print(f"   ❌ Error descargando archivo: {e}")
+            raise
     
-    def load_csv(self, csv_key, sede_id=None, encoding='utf-8', **kwargs):
-        """
-        Cargar un archivo CSV desde SharePoint o local
+    def _is_cache_valid(self):
+        """Verifica si el cache local es válido"""
+        if not config.CACHE_LOCAL:
+            return False
         
-        Args:
-            csv_key: Clave del archivo en config.ARCHIVOS_CSV
-            sede_id: ID de la sede (None para archivos compartidos como catálogo)
-            encoding: Encoding del archivo
-            **kwargs: Argumentos adicionales para pd.read_csv
+        if not os.path.exists(config.CACHE_DB_PATH):
+            return False
+        
+        # Verificar edad del archivo
+        file_age = time.time() - os.path.getmtime(config.CACHE_DB_PATH)
+        
+        if file_age > config.CACHE_MAX_AGE:
+            print(f"⏰ Cache expirado (edad: {file_age/3600:.1f} horas)")
+            return False
+        
+        print(f"✅ Usando cache local (edad: {file_age/3600:.1f} horas)")
+        return True
+    
+    def get_sqlite_connection(self):
+        """Obtiene una conexión a la base de datos SQLite
         
         Returns:
-            DataFrame de pandas
+            sqlite3.Connection: Conexión a la base de datos
         """
-        file_name = config.ARCHIVOS_CSV.get(csv_key)
+        db_path = config.CACHE_DB_PATH
         
-        if not file_name:
-            raise ValueError(f"Archivo no configurado: {csv_key}")
+        # Si no usa SharePoint, intentar usar archivo local
+        if not config.USE_SHAREPOINT:
+            local_db = config.ARCHIVO_SQLITE
+            if os.path.exists(local_db):
+                print(f"📁 Usando base de datos local: {local_db}")
+                return sqlite3.connect(local_db)
+            else:
+                raise FileNotFoundError(f"No se encuentra la base de datos local: {local_db}")
         
-        # Determinar si es archivo compartido
-        es_compartido = file_name in config.ARCHIVOS_CSV_COMPARTIDOS.values()
-        sede_label = "compartido" if es_compartido else f"sede {sede_id}"
+        # Verificar si el cache es válido
+        if self._is_cache_valid():
+            print(f"💾 Conectando a cache local: {db_path}")
+            return sqlite3.connect(db_path)
         
-        # Intentar cargar desde SharePoint
-        if self.use_sharepoint:
-            print(f"📥 Descargando {file_name} desde SharePoint ({sede_label})...")
+        # Descargar desde SharePoint
+        print("🌐 Descargando base de datos desde SharePoint...")
+        try:
+            self._download_file_from_sharepoint(
+                config.SHAREPOINT_DB_PATH,
+                db_path
+            )
+            print(f"✅ Base de datos descargada y lista")
+            return sqlite3.connect(db_path)
             
-            file_content = self._download_file_from_sharepoint(file_name, sede_id)
+        except Exception as e:
+            print(f"❌ Error descargando desde SharePoint: {e}")
             
-            if file_content:
-                # Guardar en cache
-                self._save_to_cache(file_name, file_content, sede_id)
-                
-                # Leer CSV con low_memory=False para evitar warnings
-                return pd.read_csv(file_content, encoding=encoding, low_memory=False, **kwargs)
-        
-        # Fallback: intentar cargar desde cache
-        cache_path = self._load_from_cache(file_name, sede_id)
-        if cache_path:
-            print(f"📂 Cargando {file_name} desde cache ({sede_label})...")
-            return pd.read_csv(cache_path, encoding=encoding, low_memory=False, **kwargs)
-        
-        # Fallback final: archivo local
-        print(f"📁 Cargando {file_name} desde archivo local...")
-        return pd.read_csv(file_name, encoding=encoding, low_memory=False, **kwargs)
-
+            # Si falla la descarga pero existe un cache viejo, usarlo
+            if os.path.exists(db_path):
+                print(f"⚠️  Usando cache antiguo como fallback")
+                return sqlite3.connect(db_path)
+            
+            raise Exception(f"No se pudo descargar la base de datos y no hay cache disponible: {e}")
+    
+    def clear_cache(self):
+        """Elimina el cache local para forzar una nueva descarga"""
+        if os.path.exists(config.CACHE_DB_PATH):
+            os.remove(config.CACHE_DB_PATH)
+            print("🗑️  Cache eliminado")
+            return True
+        return False
 
 # Instancia global del loader
-sharepoint_loader = SharePointLoader()
+_loader = None
 
+def get_loader():
+    """Obtiene la instancia global del loader (singleton)"""
+    global _loader
+    if _loader is None:
+        _loader = SharePointSQLiteLoader()
+    return _loader
 
-# Funciones helper para usar en app.py
-def cargar_csv_sharepoint(csv_key, sede_id=None, encoding='utf-8', **kwargs):
-    """
-    Función helper para cargar CSV compatible con el código actual
-    
-    Args:
-        csv_key: Clave del archivo en config.ARCHIVOS_CSV
-        sede_id: ID de la sede (None para archivos compartidos)
-        encoding: Encoding del archivo
-        **kwargs: Argumentos adicionales para pd.read_csv
-    """
-    return sharepoint_loader.load_csv(csv_key, sede_id=sede_id, encoding=encoding, **kwargs)
+def get_sqlite_connection():
+    """Función de conveniencia para obtener conexión SQLite"""
+    loader = get_loader()
+    return loader.get_sqlite_connection()
 
+def clear_cache():
+    """Función de conveniencia para limpiar el cache"""
+    loader = get_loader()
+    return loader.clear_cache()
