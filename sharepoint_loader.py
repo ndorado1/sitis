@@ -160,14 +160,14 @@ class SharePointSQLiteLoader:
             local_db = config.ARCHIVO_SQLITE
             if os.path.exists(local_db):
                 print(f"📁 Usando base de datos local: {local_db}")
-                return sqlite3.connect(local_db)
+                return sqlite3.connect(local_db, check_same_thread=False)
             else:
                 raise FileNotFoundError(f"No se encuentra la base de datos local: {local_db}")
         
         # Verificar si el cache es válido
         if self._is_cache_valid():
             print(f"💾 Conectando a cache local: {db_path}")
-            return sqlite3.connect(db_path)
+            return sqlite3.connect(db_path, check_same_thread=False)
         
         # Descargar desde SharePoint
         print("🌐 Descargando base de datos desde SharePoint...")
@@ -177,7 +177,7 @@ class SharePointSQLiteLoader:
                 db_path
             )
             print(f"✅ Base de datos descargada y lista")
-            return sqlite3.connect(db_path)
+            return sqlite3.connect(db_path, check_same_thread=False)
             
         except Exception as e:
             print(f"❌ Error descargando desde SharePoint: {e}")
@@ -185,7 +185,7 @@ class SharePointSQLiteLoader:
             # Si falla la descarga pero existe un cache viejo, usarlo
             if os.path.exists(db_path):
                 print(f"⚠️  Usando cache antiguo como fallback")
-                return sqlite3.connect(db_path)
+                return sqlite3.connect(db_path, check_same_thread=False)
             
             raise Exception(f"No se pudo descargar la base de datos y no hay cache disponible: {e}")
     
